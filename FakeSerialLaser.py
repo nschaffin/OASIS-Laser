@@ -39,7 +39,7 @@ class Serial:
         if self._isOpen == False:
             raise PortError('Port Not Opened')
         if type(command) == bytes:
-            commandDecoded = command.decode('ascii')
+            commandDecoded = str(repr(command.decode('ascii'))).strip("'")
             print("Laser recieved command: {}".format(commandDecoded))
         else:
             raise TypeError('{} is not a byte format'.format(type(command)))
@@ -47,13 +47,35 @@ class Serial:
         strip = commandDecoded.split(':', 1)
         strippedCMD = []
         strippedCMD.append(strip[0])            # I can fix this to be shorter prolly, but meh
-        strip = strip[1].split('<', 1)
-        strippedCMD.append(strip[0])
-        strippedCMD.append(strip[1])
-        #print("Stripped command: {}".format(strippedCMD))
+        try:
+            newlineIndex = strip[1].index("\\n")
+        except:
+            newlineIndex = -1
+            
+        try:
+            carriageReturnIndex = strip[1].index("\\r")
+        except:
+            carriageReturnIndex = -1
+        
+        if carriageReturnIndex != -1 and newlineIndex == -1:
+            strip = strip[1].split("\\r")
+            strippedCMD.append(strip[0])
+            
+        elif carriageReturnIndex == -1 and newlineIndex != -1:
+            strip = strip[1].split("\\n")
+            strippedCMD.append(strip[0])
+            
+        elif carriageReturnIndex != -1 and newlineIndex != -1:
+            strip = strip[1].replace('\\r', '').replace('\\n', '')
+            strippedCMD.append(strip)
+
+        else:
+            print('hi')
+            self._sendBytes('?1')
+            return None
 
         # Check for valid command
-        if strippedCMD[0] == ';LA' and (strippedCMD[2] == 'CR>' or strippedCMD[2] == 'LF>' or strippedCMD == 'CR><LF>' or strippedCMD == 'LF><CR>'):
+        if strippedCMD[0] == ';LA':
             query = strippedCMD[1].find('?')
             if query != -1:                                                 # Query Commands
                 queryList = strippedCMD[1].split('?')
@@ -194,20 +216,28 @@ class Serial:
                     self._sendBytes('OK<CR>')
 
                 elif actionCMD[0] == 'EN':              # Arm command
-                    if self._RTE == '1':
-                        self._enable = int(actionCMD[1])
-                        self._LE = str(actionCMD[1])
-                        self._RTF = str(actionCMD[1])
+                    if self._RTE == '1' and actionCMD[1] == '1':
+                        self._t2.start()
+                        self._sendBytes('OK<CR>')
+                    elif self._RTE == '0' and actionCMD[1] == '1':
+                        self._sendBytes('?8')
+                    elif actionCMD[1] == '0' and self._enable == 1:
+                        self._enable = 0
+                        self._LE = '0'
+                        self._RTF = '0'
+                        self._sendBytes('OK<CR>')
+                    elif actionCMD[1] == '0' and self._enable == 0:
                         self._sendBytes('OK<CR>')
                     else:
                         self._sendBytes('?8')
 
                 elif actionCMD[0] == 'FL':              # Fire laser command
-                    if self._RTF == '1' and self._HPM == '1' and self._LE == '1' and self._RTE == '1':
-                        self._fireLaser = int(actionCMD[1])
-                        self._LA = '1'
+                    if self._RTF == '1' and (self._energyMode == 0 or self._energyMode == 1) and self._LE == '1' and self._RTE == '1':
+                        self._t3.start()
                         self._sendBytes('OK<CR>')
-
+                    else:
+                        self._sendBytes('?8')
+                        
                 elif actionCMD[0] == 'PE':
                     self._pulsePeriod = float(actionCMD[1])
                     self._sendBytes('OK<CR>')
@@ -242,9 +272,11 @@ class Serial:
                     self._sendBytes('OK<CR>')
 
                 else:
+                    print('here')
                     self._sendBytes('?1')
                 
         else:
+            print('here 2')
             self._sendBytes('?1')
           
         return None
@@ -287,7 +319,7 @@ class Serial:
         SixteenBit = self._spare + self._spare + self._HPM + self._LPM + self._RTF + self._RTE + self._PF + self._EOT + self._ROT + self._EI + self._reserved + self._reserved + self._DET + self._reserved + self._LA + self._LE
         power = 0
         decimal = 0
-        for i in reversed(SixteenBit):       # Converting 16 bit string into 16 bit decimal value
+        for i in (SixteenBit):       # Converting 16 bit string into 16 bit decimal value
             if i == '1':
                 decimal += 2**power
             power += 1
@@ -346,7 +378,7 @@ class Serial:
         ### System Status Below ###
         # This goes 15 -> 0 byte order (16 bit decimal value)
         self._spare = '0'       # There are 2 of these
-        self._HPM = '1'         # High Power Mode
+        self._HPM = '0'         # High Power Mode
         self._LPM = '0'         # Low Power Mode
         self._RTF = '0'         # Ready to Fire
         self._RTE = '1'         # Ready to Enable
@@ -359,6 +391,30 @@ class Serial:
         # Another reserved
         self._LA = '0'          # Laser Active
         self._LE = '0'          # Laser Enabled
+
+        ### Timer Threads ###
+        self._t1 = threading.Thread(target=self._warmupTimer)
+        self._t2 = threading.Thread(target=self._armingTimer)
+        self._t3 = threading.Thread(target=self._firingTimer)
+
+    ### Threaded Timers ###
+    def _warmupTimer(self):
+        time.sleep(10)
+
+    def _armingTimer(self):
+        time.sleep(8)
+        self._enable = 1
+        self._LE = '1'
+        self._RTF = '1'
+
+    def _firingTimer(self):
+        self._fireLaser = 1
+        self._LA = '1'
+        #time.sleep(self._pulsePeriod)
+        time.sleep(30)
+        self._fireLaser = 0
+        self._LA = '0'
+
 
 ### Error Types ###
 class PortError(Exception):
