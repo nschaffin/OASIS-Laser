@@ -231,7 +231,7 @@ class Laser:
 
     # Added: emergency stop
     def emergency_stop(self):
-        """Immediately sends command to laser to stop firing (no lock)"""
+        """Immediately sends command to laser to stop firing"""
         self._send_command('FL 0')
 
     def arm(self):
@@ -244,25 +244,45 @@ class Laser:
     
     def set_pulse_mode(self, mode):
         """Sets the laser pulse mode. 0 = continuous, 1 = single shot, 2 = burst. Returns True on nominal response."""
-        if not mode in (0,1,2):
+        if not mode in (0,1,2) or not type(mode) == int:
             raise ValueError("Invalid value for pulse mode! 0, 1, or 2 are accepted values.")
 
-        return self._send_command("PM " + str(mode)) == "OK\r"
+        if self._send_command("PM " + str(mode)) == "OK\r":
+            self.pulseMode = mode
+            return True
+        return False
     
     def set_diode_trigger(self, trigger):
         """Sets the diode trigger mode. 0 = Software/internal. 1 = Hardware/external trigger. Returns True on nominal response."""
-        if trigger != 0 and trigger != 1:
+        if trigger != 0 and trigger != 1 or not type(trigger) == int:
             raise ValueError("Invalid value for trigger mode! 0 or 1 are accepted values.")
-            
-        return self._send_command("DT " + str(trigger)) == "OK\r"
+
+        if self._send_command("DT " + str(trigger)) == "OK\r":
+            self.diodeTrigger = trigger
+            return True
+        return False
         
     def set_pulse_width(self, width):
-        """Sets the diode pulse width. Width is in seconds, may be a float. Returns True on nominal response."""
+        """Sets the diode pulse width. Width is in seconds, may be a float. Returns True on nominal response, False otherwise."""
         if width <= 0:
             raise ValueError("Pulse width must be a positive, non-zero value!")
 
         width = float(width)
-        return self._send_command("DW " + str(width)) == "OK\r"
+        
+        if self._send_command("DW " + str(width)) == "OK\r":
+            self.pulseWidth = width
+            return True
+        return False
+        
+    def set_burst_count(self, count):
+        """Sets the burst count of the laser. Must be a positive non-zero integer. Returns True on nominal response, False otherwise."""
+        if count <= 0 or not type(count) == int:
+            raise ValueError("Burst count must be a positive, non-zero integer!")
+
+        if self._send_command("BC " + str(count)) == "OK\r":
+            self.burstCount = count
+            return True
+        return False
 
     def update_settings(self):
         # cmd format, ignore brackets => ;[Address]:[Command String][Parameters]\r
