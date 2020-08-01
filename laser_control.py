@@ -243,12 +243,12 @@ class Laser:
         self._send_command('FL 0')
 
     def arm(self):
-        """Sends command to laser to arm"""
-        self._send_command('EN 1')
+        """Sends command to laser to arm. Returns True on nominal response."""
+        return self._send_command('EN 1') == "OK\r"
 
     def disarm(self):
-        """Sends command to laser to disarm"""
-        self._send_command('EN 0')
+        """Sends command to laser to disarm. Returns True on nominal response."""
+        return self._send_command('EN 0') == "OK\r"
 
     def update_settings(self):
         # cmd format, ignore brackets => ;[Address]:[Command String][Parameters]\r
