@@ -268,9 +268,8 @@ class Laser:
         # cmd format, ignore brackets => ;[Address]:[Command String][Parameters]\r
         """Updates laser settings"""
         cmd_strings = list()
-        cmd_strings.append('PM ' + str(self.pulseMode))
         cmd_strings.append('RR ' + str(self.repRate))
-        cmd_strings.append('BC ' + str(self.pulseMode))
+        cmd_strings.append('BC ' + str(self.burstCount))
         cmd_strings.append('DC ' + str(self.diodeCurrent))
         cmd_strings.append('EM ' + str(self.energyMode))
         cmd_strings.append('PM ' + str(self.pulseMode))
