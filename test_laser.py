@@ -79,6 +79,37 @@ class TestLaserCommands(unittest.TestCase):
         serial_mock.write.assert_called_once_with(";LA:DT 0\r".encode("ascii"))
         assert l.diodeTrigger == 1 # This value should have NOT changed since this command failed.
 
+    def test_pulse_width_command(self):
+        """Tests Laser.set_pulse_width, feeds in a mock serial object. Makes sure that the correct data is written and that the properties of the class are changed."""
+        serial_mock = Mock()
+
+        serial_mock.read_until = Mock(return_value="OK\r")
+        serial_mock.write = Mock()
+
+        l = Laser()
+        l._ser = serial_mock
+        l.connected = True
+
+        with self.assertRaises(ValueError):
+            l.set_pulse_width(0) # Valid values positive, non-zero numbers
+
+        with self.assertRaises(ValueError):
+            l.set_pulse_width(-20) # Valid values positive numbers
+
+        with self.assertRaises(ValueError):
+            l.set_pulse_width("this is not an integer")
+
+        assert l.set_pulse_width(0.1)
+        serial_mock.write.assert_called_once_with(";LA:DW 0.1\r".encode("ascii"))
+        assert l.pulseWidth == 0.1
+
+        serial_mock.read_until = Mock(return_value="?1") # Make sure we return False is the laser returns an error
+        serial_mock.write = Mock()
+        
+        assert not l.set_pulse_width(0.2)
+        serial_mock.write.assert_called_once_with(";LA:DW 0.2\r".encode("ascii"))
+        assert l.pulseWidth == 0.1 # This value should have NOT changed since this command failed.
+
     def test_energy_mode_command(self):
         """Tests Laser.set_energy_mode, feeds in a mock serial object. Makes sure that the correct data is written and that the properties of the class are changed."""
         serial_mock = Mock()
