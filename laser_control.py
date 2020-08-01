@@ -101,7 +101,7 @@ class Laser:
             Bits per second on serial connection
 
         timeout : int
-            A buffer for if connection is not established
+            Number of seconds until a read operation fails.
 
         """
         with self.__lock:
@@ -151,7 +151,7 @@ class Laser:
             time.sleep(self.burstDuration)
             self.__send_command('FL 0')
 
-    def get_status(self):
+    def get_status(self): # TODO: Make this return useful values to the user. The user should not have to parse out the information encoded in the string you return.
         """
         Obtains the status of the laser
         Returns
@@ -163,7 +163,6 @@ class Laser:
                 2^3 = diode external trigger, 2^1 = laser active, 2^0 = laser enabled)
         """
         return self.__send_command('SS?')
-            
 
     def check_armed(self):
         """
