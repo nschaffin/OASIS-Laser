@@ -5,7 +5,7 @@ import threading as thread
 
 class Laser:
     def __init__(self, pulseMode = 0, repRate = 10, burstCount = 10000, diodeCurrent = .1, energyMode = 0, pulseWidth = 10, diodeTrigger = 0):
-        self.__ser = serial.Serial()
+        self._ser = None
         self.pulseMode = pulseMode # NOTE: Pulse mode 0 = continuous is actually implemented as 2 = burst mode in this code.
         self.repRate = repRate
         self.burstCount = burstCount
@@ -15,12 +15,12 @@ class Laser:
         self.diodeTrigger = diodeTrigger
         self.burstDuration = burstCount/repRate
 
-        self.__kicker_control = False  # False = off, True = On. Controls kicker for shots longer than 2 seconds
-        self.__startup = True
-        self.__threads = []
-        self.__lock = thread.Lock() # this lock will be acquired every time the serial port is accessed.
-        self.__device_address = "LA"
-        self.update_settings()
+        self._kicker_control = False  # False = off, True = On. Controls kicker for shots longer than 2 seconds
+        self._startup = True
+        self._threads = []
+        self._lock = thread.Lock() # this lock will be acquired every time the serial port is accessed.
+        self._device_address = "LA"
+        self.connected = False
 
     def editConstants(self, pulseMode = 0, repRate = 10, burstCount = 10000, diodeCurrent = .1, energyMode = 0, pulseWidth = 10,  diodeTrigger = 0):
         """
@@ -53,14 +53,14 @@ class Laser:
         self.burstDuration = burstCount/repRate
         self.update_settings()
 
-    def __kicker(self):  # queries for status every second in order to kick the laser's WDT on shots >= 2s
+    def _kicker(self):  # queries for status every second in order to kick the laser's WDT on shots >= 2s
         """Queries for status every second in order to kick the laser's WDT on shots >= 2s"""
         while True:
-            if self.__kicker_control:
-                self.__ser.write('SS?')
+            if self._kicker_control:
+                self._ser.write('SS?')
             time.sleep(1)
 
-    def __send_command(self, cmd):
+    def _send_command(self, cmd):
         """
         Sends command to laser
 
@@ -77,13 +77,16 @@ class Laser:
         if len(cmd) == 0:
             return
         
-        # Form the complete command string, in order this is: prefix, address, delimiter, command, and terminator
-        cmd_complete = ";" + self.__device_address + ":" + cmd + "\r"
+        if not self.connected:
+            raise ConnectionError("Not connected to a serial port. Please call connect() before issuing any commands!")
         
-        with self.__lock: # make sure we're the only ones on the serial line
-            self.__ser.write(cmd_complete.encode("ascii")) # write the complete command to the serial device
+        # Form the complete command string, in order this is: prefix, address, delimiter, command, and terminator
+        cmd_complete = ";" + self._device_address + ":" + cmd + "\r"
+        
+        with self._lock: # make sure we're the only ones on the serial line
+            self._ser.write(cmd_complete.encode("ascii")) # write the complete command to the serial device
             time.sleep(0.01)
-            response = self.__ser.read_until(expected="\r") # laser returns with <CR> = \r Note that this may timeout and return None
+            response = self._ser.read_until(expected="\r") # laser returns with <CR> = \r Note that this may timeout and return None
 
         return response
 
@@ -103,65 +106,65 @@ class Laser:
             Number of seconds until a read operation fails.
 
         """
-        with self.__lock:
+        with self._lock:
             if port_number not in serial.tools.list_ports.comports():
                 raise ValueError(f"Error: port {port_number} is not available")
-            self.__ser = serial.Serial(port=port_number)
+            self._ser = serial.Serial(port=port_number)
             if baud_rate and isinstance(baud_rate, int):
-                self.__ser.baudrate = baud_rate
+                self._ser.baudrate = baud_rate
             else:
                 raise ValueError('Error: baud_rate parameter must be an integer')
             if timeout and isinstance(timeout, int):
-                self.__ser.timeout = timeout
+                self._ser.timeout = timeout
             else:
                 raise ValueError('Error: timeout parameter must be an integer')
             if not parity or parity == 'none':
-                self.__ser.parity = serial.PARITY_NONE
+                self._ser.parity = serial.PARITY_NONE
             elif parity == 'even':
-                self.__ser.parity = serial.PARITY_EVEN
+                self._ser.parity = serial.PARITY_EVEN
             elif parity == 'odd':
-                self.__ser.parity = serial.PARITY_ODD
+                self._ser.parity = serial.PARITY_ODD
             elif parity == 'mark':
-                self.__ser.parity = serial.PARITY_MARK
+                self._ser.parity = serial.PARITY_MARK
             elif parity == 'space':
-                self.__ser.parity = serial.PARITY_SPACE
+                self._ser.parity = serial.PARITY_SPACE
             else:
                 raise ValueError("Error: parity must be None, \'none\', \'even\', \'odd\', \'mark\', \'space\'")
-            if self.__startup:  # start kicking the laser's WDT
-                t = thread.Thread(target=self.__kicker())
-                self.__threads.append(t)
+            if self._startup:  # start kicking the laser's WDT
+                t = thread.Thread(target=self._kicker())
+                self._threads.append(t)
                 t.start()
-                self.__startup = False
+                self._startup = False
 
     # Added: changed lock structure
     def fire_laser(self):
         """
             Sends commands to laser to have it fire
         """
-        self.__send_command('FL 1')
-        response = self.__send_command('SS?')
+        self._send_command('FL 1')
+        response = self._send_command('SS?')
 
         if response != '3075\r':
-            self.__send_command('FL 0')  # aborts if laser fails to fire
+            self._send_command('FL 0')  # aborts if laser fails to fire
             raise RuntimeError('Laser Failed to Fire')
         else:
             if self.burstDuration >= 2:
-                self.__kicker_control = True
+                self._kicker_control = True
             time.sleep(self.burstDuration)
-            self.__send_command('FL 0')
+            self._send_command('FL 0')
 
     def get_status(self): # TODO: Make this return useful values to the user. The user should not have to parse out the information encoded in the string you return.
         """
         Obtains the status of the laser
         Returns
-        _______
+        ______
         status : bytes
             Returns the int value of the status of the laser status in bytes string
                 (Sum of 2^13 = High power mode; 2^12 = Low power mode, 2^11 = Ready to fire, 2^10 = Ready to enable
                 2^9 = Power failure, 2^8 = Electrical over temp, 2^7 = Resonator over temp, 2^6 = External interlock,
                 2^3 = diode external trigger, 2^1 = laser active, 2^0 = laser enabled)
         """
-        return self.__send_command('SS?')
+        return self._send_command('SS?')
 
     def check_armed(self):
         """
@@ -171,7 +174,7 @@ class Laser:
         armed : boolean
             the lasr is armed
         """
-        response = self.__send_command('EN?')
+        response = self._send_command('EN?')
         if response and len(response) == 2:
             return response[1] == b'1'
 
@@ -185,7 +188,7 @@ class Laser:
         fet : bytes
             Returns the float value of the FET temperature in bytes string.
         """
-        response = self.__send_command('FT?')
+        response = self._send_command('FT?')
         return response[:-4]
 
     # Added: Resonator temperature
@@ -198,7 +201,7 @@ class Laser:
         resonator_temp : bytes
             Returns the float value of the resonator temperature in bytes string.
         """
-        response - self.__send_command('TR?')
+        response - self._send_command('TR?')
         return response[:-4]
 
     # Added: FET voltage
@@ -211,7 +214,7 @@ class Laser:
         fet_voltage : bytes
             Returns the float value of the FET voltage in bytes string.
         """
-        response = self.__send_command('FV?')
+        response = self._send_command('FV?')
         return response[:-4]
             
     # Added: Diode Trigger Mode
@@ -219,7 +222,7 @@ class Laser:
         """
         Sets the trigger mode of the laser. 0 = Internal/software. 1 - External trigger
         """
-        response = self.__send_command('FV?')
+        response = self._send_command('FV?')
         return response[:-4]
 
     def diode_current_check(self):
@@ -231,21 +234,21 @@ class Laser:
         diode_current : bytes
             Returns the float value of the diode current in bytes string.
         """
-        response = self.__send_command('IM?')
+        response = self._send_command('IM?')
         return response[:-4]
 
     # Added: emergency stop
     def emergency_stop(self):
         """Immediately sends command to laser to stop firing (no lock)"""
-        self.__send_command('FL 0')
+        self._send_command('FL 0')
 
     def arm(self):
         """Sends command to laser to arm"""
-        self.__send_command('EN 1')
+        self._send_command('EN 1')
 
     def disarm(self):
         """Sends command to laser to disarm"""
-        self.__send_command('EN 0')
+        self._send_command('EN 0')
 
     def update_settings(self):
         # cmd format, ignore brackets => ;[Address]:[Command String][Parameters]\r
@@ -261,7 +264,7 @@ class Laser:
         cmd_strings.append('DT ' + str(self.pulseMode))
 
         for i in cmd_strings:
-            self.__send_command(i)
+            self._send_command(i)
 
 
 def list_available_ports():
