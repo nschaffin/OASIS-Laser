@@ -261,19 +261,19 @@ class Laser:
             self.diodeTrigger = trigger
             return True
         return False
-        
+
     def set_pulse_width(self, width):
         """Sets the diode pulse width. Width is in seconds, may be a float. Returns True on nominal response, False otherwise."""
         if width <= 0:
             raise ValueError("Pulse width must be a positive, non-zero value!")
 
         width = float(width)
-        
+
         if self._send_command("DW " + str(width)) == "OK\r":
             self.pulseWidth = width
             return True
         return False
-        
+
     def set_burst_count(self, count):
         """Sets the burst count of the laser. Must be a positive non-zero integer. Returns True on nominal response, False otherwise."""
         if count <= 0 or not type(count) == int:
@@ -281,6 +281,37 @@ class Laser:
 
         if self._send_command("BC " + str(count)) == "OK\r":
             self.burstCount = count
+            return True
+        return False
+
+    def set_rep_rate(self, rate):
+        """Sets the repetition rate of the laser. Rate must be a positive integer from 1 to 5. Returns True on nominal response, False otherwise."""
+        if not type(count) == int or rate < 1 or rate > 5:
+            raise ValueError("Laser repetition rate must be a positive integer from 1 to 5!")
+
+        if self._send_command("RR " + str(rate)) == "OK\r":
+            self.repRate = rate
+            return True
+        return False
+
+    def set_diode_current(self, current):
+        """Sets the diode current of the laser. Must be a positive non-zero integer. Returns True on nominal response, False otherwise."""
+        if current <= 0:
+            raise ValueError("Diode current must be a positive, non-zero value!")
+        
+        if self._send_command("DC " + str(current)) == "OK\r":
+            self.diodeCurrent = current
+            self.energyMode = 0 # Whenever diode current is adjusted manually, the energy mode is set to manual.
+            return True
+        return False
+        
+    def set_energy_mode(self, mode):
+        """Sets the energy mode of the laser. 0 = manual, 1 = low power, 2 = high power. Returns True on nominal response, False otherwise."""
+        if current <= 0:
+            raise ValueError("Diode current must be a positive, non-zero value!")
+        
+        if self._send_command("EM " + str(current)) == "OK\r":
+            self.diodeCurrent = current
             return True
         return False
 
