@@ -3,7 +3,6 @@ import serial.tools.list_ports
 import time
 import threading as thread
 
-
 class Laser:
     def __init__(self, pulseMode = 0, repRate = 10, burstCount = 10000, diodeCurrent = .1, energyMode = 0, pulseWidth = 10, diodeTrigger = 0):
         self.__ser = serial.Serial()
@@ -61,7 +60,7 @@ class Laser:
                 self.__ser.write('SS?')
             time.sleep(1)
 
-    def __send_command(self, cmd, timeout=self.__response_timeout):
+    def __send_command(self, cmd):
         """
         Sends command to laser
 
@@ -84,7 +83,7 @@ class Laser:
         with self.__lock: # make sure we're the only ones on the serial line
             self.__ser.write(cmd_complete.encode("ascii")) # write the complete command to the serial device
             time.sleep(0.01)
-            response = self.__ser.read_until(expected="\r") # laser returns with <CR> = \r
+            response = self.__ser.read_until(expected="\r") # laser returns with <CR> = \r Note that this may timeout and return None
 
         return response
 
