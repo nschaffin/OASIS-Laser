@@ -216,14 +216,6 @@ class Laser:
         """
         response = self._send_command('FV?')
         return response[:-4]
-            
-    # Added: Diode Trigger Mode
-    def set_trigger_mode(self, mode):
-        """
-        Sets the trigger mode of the laser. 0 = Internal/software. 1 - External trigger
-        """
-        response = self._send_command('FV?')
-        return response[:-4]
 
     def diode_current_check(self):
         """
@@ -249,13 +241,28 @@ class Laser:
     def disarm(self):
         """Sends command to laser to disarm. Returns True on nominal response."""
         return self._send_command('EN 0') == "OK\r"
-        
+    
+    def set_pulse_mode(self, mode):
+        """Sets the laser pulse mode. 0 = continuous, 1 = single shot, 2 = burst. Returns True on nominal response."""
+        if not mode in (0,1,2):
+            raise ValueError("Invalid value for pulse mode! 0, 1, or 2 are accepted values.")
+
+        return self._send_command("PM " + str(mode)) == "OK\r"
+    
     def set_diode_trigger(self, trigger):
         """Sets the diode trigger mode. 0 = Software/internal. 1 = Hardware/external trigger. Returns True on nominal response."""
         if trigger != 0 and trigger != 1:
             raise ValueError("Invalid value for trigger mode! 0 or 1 are accepted values.")
             
         return self._send_command("DT " + str(trigger)) == "OK\r"
+        
+    def set_pulse_width(self, width):
+        """Sets the diode pulse width. Width is in seconds, may be a float. Returns True on nominal response."""
+        if width <= 0:
+            raise ValueError("Pulse width must be a positive, non-zero value!")
+
+        width = float(width)
+        return self._send_command("DW " + str(width)) == "OK\r"
 
     def update_settings(self):
         # cmd format, ignore brackets => ;[Address]:[Command String][Parameters]\r
