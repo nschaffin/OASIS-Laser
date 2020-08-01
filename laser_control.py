@@ -295,9 +295,9 @@ class Laser:
         return False
 
     def set_diode_current(self, current):
-        """Sets the diode current of the laser. Must be a positive non-zero integer. Returns True on nominal response, False otherwise."""
-        if current <= 0:
-            raise ValueError("Diode current must be a positive, non-zero value!")
+        """Sets the diode current of the laser. Must be a positive non-zero integer (maybe even a float?). Returns True on nominal response, False otherwise."""
+        if (type(current) != int and type(current) != float) or current <= 0:
+            raise ValueError("Diode current must be a positive, non-zero number!")
         
         if self._send_command("DC " + str(current)) == "OK\r":
             self.diodeCurrent = current
@@ -307,11 +307,14 @@ class Laser:
         
     def set_energy_mode(self, mode):
         """Sets the energy mode of the laser. 0 = manual, 1 = low power, 2 = high power. Returns True on nominal response, False otherwise."""
-        if current <= 0:
-            raise ValueError("Diode current must be a positive, non-zero value!")
-        
-        if self._send_command("EM " + str(current)) == "OK\r":
-            self.diodeCurrent = current
+        if type(mode) != int:
+            raise ValueError("Energy mode must be an integer!")
+
+        if not mode in (0, 1, 2):
+            raise ValueError("Valid values for energy mode are 0, 1 and 2!")
+
+        if self._send_command("EM " + str(mode)) == "OK\r":
+            self.energyMode = mode
             return True
         return False
 
