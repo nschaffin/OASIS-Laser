@@ -249,6 +249,13 @@ class Laser:
     def disarm(self):
         """Sends command to laser to disarm. Returns True on nominal response."""
         return self._send_command('EN 0') == "OK\r"
+        
+    def set_diode_trigger(self, trigger):
+        """Sets the diode trigger mode. 0 = Software/internal. 1 = Hardware/external trigger. Returns True on nominal response."""
+        if trigger != 0 and trigger != 1:
+            raise ValueError("Invalid value for trigger mode! 0 or 1 are accepted values.")
+            
+        return self._send_command("DT " + str(trigger)) == "OK\r"
 
     def update_settings(self):
         # cmd format, ignore brackets => ;[Address]:[Command String][Parameters]\r
