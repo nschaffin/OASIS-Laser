@@ -36,8 +36,8 @@ class Serial:
 
     def write(self, command):
         # Here I need to implement all of the stuff
-        if self._isOpen == False:
-            raise PortError('Port Not Opened')
+        #if self._isOpen == False:
+        #    raise PortError('Port Not Opened')
         if type(command) == bytes:
             commandDecoded = str(repr(command.decode('ascii'))).strip("'")
             print("Laser recieved command: {}".format(commandDecoded))
@@ -306,6 +306,28 @@ class Serial:
         send = self._sendData[0:newlineIndex]
         self._sendData = self._sendData[newlineIndex+1:]
         return send.encode('ascii')
+
+    def read_until(self, expected):
+        if self._sendData == '':
+            return None
+
+        firstNewLine = self._sendData.index("\n")
+        expectedIndex = self._sendData.index(expected)
+        
+        if firstNewLine < expectedIndex:
+            if firstNewLine == 0:
+                send = self._sendData[1:expectedIndex]
+                self._sendData = self._sendData[expectedIndex+1:]
+            else:
+                send = self._sendData[0:firstNewLine] + self._sendData[firstNewLine+1:expectedIndex]
+                self._sendData = self._sendData[expectedIndex+1:]
+
+        else:
+            send = send = self._sendData[0:expectedIndex]
+            self._sendData = self._sendData[expectedIndex+1]
+
+        return send.encode('ascii')
+                
 
 
     def _sendBytes(self, sendValue):
