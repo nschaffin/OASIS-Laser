@@ -46,7 +46,7 @@ class Serial:
 
         strip = commandDecoded.split(':', 1)
         strippedCMD = []
-        strippedCMD.append(strip[0])            # I can fix this to be shorter prolly, but meh
+        strippedCMD.append(strip[0])
         try:
             newlineIndex = strip[1].index("\\n")
         except:
@@ -82,88 +82,88 @@ class Serial:
                 queryCMD = queryList[0]
             
                 if queryCMD == 'BC':    # Burst Count
-                    self._sendData += '{}\n'.format(str(self._burstCount))
+                    self._sendBytes(str(self._burstCount))
 
                 elif queryCMD == 'BV':  # Bank Voltage
-                    self._sendData += '{}\n'.format(str(self._bankVoltage))
+                    self._sendBytes(str(self._bankVoltage))
 
                 elif queryCMD == 'DT':
-                    self._sendData += '{}\n'.format(str(self._diodeTrigger))
+                    self._sendBytes(str(self._diodeTrigger))
 
                 elif queryCMD == 'DC':
-                    self._sendData += '{}\n'.format(str(self._diodeCurrent))
+                    self._sendBytes(str(self._diodeCurrent))
 
                 elif queryCMD == 'DC:MIN':
-                    self._sendData += '{}\n'.format(str(self._diodeCurrentMIN))
+                    self._sendBytes(str(self._diodeCurrentMIN))
 
                 elif queryCMD == 'DC:MAX':
-                    self._sendData += '{}\n'.format(str(self._diodeCurrentMAX))
+                    self._sendBytes(str(self._diodeCurrentMAX))
 
                 elif queryCMD == 'DW':
-                    self._sendData += '{}\n'.format(str(self._diodeWidth))
+                    self._sendBytes(str(self._diodeWidth))
 
                 elif queryCMD == 'DW:MIN':
-                    self._sendData += '{}\n'.format(str(self._diodeWidthMIN))
+                    self._sendBytes(str(self._diodeWidthMIN))
 
                 elif queryCMD == 'DW:MAX':
-                    self._sendData += '{}\n'.format(str(self._diodeWidthMAX))
+                    self._sendBytes(str(self._diodeWidthMAX))
 
                 elif queryCMD == 'EC':
-                    self._sendData += '{}\n'.format(str(self._echo))
+                    self._sendBytes(str(self._echo))
 
                 elif queryCMD == 'EM':
-                    self._sendData += '{}\n'.format(str(self._energyMode))
+                    self._sendBytes(str(self._energyMode))
 
                 elif queryCMD == 'EN':
-                    self._sendData += '{}\n'.format(str(self._enable))
+                    self._sendBytes(str(self._enable))
 
                 elif queryCMD == 'FL':
-                    self._sendData += '{}\n'.format(str(self._fireLaser))
+                    self._sendBytes(str(self._fireLaser))
 
                 elif queryCMD == 'FT':
-                    self._sendData += '{}\n'.format(str(self._FETtemp))
+                    self._sendBytes(str(self._FETtemp))
 
                 elif queryCMD == 'FT:MAX':
-                    self._sendData += '{}\n'.format(str(self._FETtempMAX))
+                    self._sendBytes(str(self._FETtempMAX))
 
                 elif queryCMD == 'FV':
-                    self._sendData += '{}\n'.format(str(self._FETvolts))
+                    self._sendBytes(str(self._FETvolts))
 
                 elif queryCMD == 'ID':
-                    self._sendData += '{}\n'.format(str('QC,MicroJewel,00101,1.0-0.0.0.8'))
+                    self._sendBytes(str('QC,MicroJewel,00101,1.0-0.0.0.8'))
 
                 elif queryCMD == 'IM':
-                    self._sendData += '{}\n'.format(str(self._currentMeasurement))
+                    self._sendBytes(str(self._currentMeasurement))
 
                 elif queryCMD == 'LS':
-                    self._sendData += '{}\n'.format(str(self._latchedStatus))
+                    self._sendBytes(str(self._latchedStatus))
 
                 elif queryCMD == 'PE':
-                    self._sendData += '{}\n'.format(str(self._pulsePeriod))
+                    self._sendBytes(str(self._pulsePeriod))
 
                 elif queryCMD == 'PE:MIN':
-                    self._sendData += '{}\n'.format(str(self._pulsePeriodMIN))
+                    self._sendBytes(str(self._pulsePeriodMIN))
 
                 elif queryCMD == 'PE:MAX':
-                    self._sendData += '{}\n'.format(str(self._pulsePeriodMAX))
+                    self._sendBytes(str(self._pulsePeriodMAX))
 
                 elif queryCMD == 'PM':
-                    self._sendData += '{}\n'.format(str(self._pulseMODE))
+                    self._sendBytes(str(self._pulseMODE))
 
                 elif queryCMD == 'RC':
-                    self._sendData += '{}\n'.format(str(self._recallSettings))
+                    self._sendBytes(str(self._recallSettings))
 
                 elif queryCMD == 'RR':
-                    self._sendData += '{}\n'.format(str(self._repititionRate))
+                    self._sendBytes(str(self._repititionRate))
 
                 elif queryCMD == 'RR:MIN':
-                    self._sendData += '{}\n'.format(str(self._repititionRateMIN))
+                    self._sendBytes(str(self._repititionRateMIN))
 
                 elif queryCMD == 'RR:MAX':
-                    self._sendData += '{}\n'.format(str(self._repititionRateMAX))
+                    self._sendBytes(str(self._repititionRateMAX))
 
                 elif queryCMD == 'SC':
-                    self._sendData += '{}\n'.format(str(self._systemShotCount))
+                    self._sendBytes(str(self._systemShotCount))
 
                 elif queryCMD == 'SS':
                     self._HPM == '0'
@@ -172,19 +172,19 @@ class Serial:
                     self._HPM == '1'
 
                 elif queryCMD == 'SV':
-                    self._sendData += '{}\n'.format(str(self._saveSettings))
+                    self._sendBytes(str(self._saveSettings))
 
                 elif queryCMD == 'TR':
-                    self._sendData += '{}\n'.format(str(self._thermistorTemp))
+                    self._sendBytes(str(self._thermistorTemp))
 
                 elif queryCMD == 'TR:MIN':
-                    self._sendData += '{}\n'.format(str(self._thermistorTempMIN))
+                    self._sendBytes(str(self._thermistorTempMIN))
 
                 elif queryCMD == 'TR:MAX':
-                    self._sendData += '{}\n'.format(str(self._thermistorTempMAX))
+                    self._sendBytes(str(self._thermistorTempMAX))
 
                 elif queryCMD == 'UC':
-                    self._sendData += '{}\n'.format(str(self._userShotCount))
+                    self._sendBytes(str(self._userShotCount))
 
                 else:
                     self._sendBytes('?7')   # Error Code for invalid query command
@@ -193,74 +193,74 @@ class Serial:
                 actionCMD = strippedCMD[1].split()
                 if actionCMD[0] == 'BC':
                     self._burstCount = int(actionCMD[1])
-                    self._sendBytes('OK<CR>')
+                    self._sendBytes('OK')
 
                 elif actionCMD[0] == 'DC':
                     self._diodeCurrent = int(actionCMD[1])
-                    self._sendBytes('OK<CR>')
+                    self._sendBytes('OK')
 
                 elif actionCMD[0] == 'DT':
                     self._diodeTrigger = int(actionCMD[1])
-                    self._sendBytes('OK<CR>')
+                    self._sendBytes('OK')
 
                 elif actionCMD[0] == 'DW':
                     self._diodeWidth = int(actionCMD[1])
-                    self._sendBytes('OK<CR>')
+                    self._sendBytes('OK')
 
                 elif actionCMD[0] == 'EC':
                     self._echo = int(actionCMD[1])
-                    self._sendBytes('OK<CR>')
+                    self._sendBytes('OK')
 
                 elif actionCMD[0] == 'EM':
                     self._energyMode = int(actionCMD[1])
-                    self._sendBytes('OK<CR>')
+                    self._sendBytes('OK')
 
                 elif actionCMD[0] == 'EN':              # Arm command
                     if self._RTE == '1' and actionCMD[1] == '1':
                         self._t2.start()
-                        self._sendBytes('OK<CR>')
+                        self._sendBytes('OK')
                     elif self._RTE == '0' and actionCMD[1] == '1':
                         self._sendBytes('?8')
                     elif actionCMD[1] == '0' and self._enable == 1:
                         self._enable = 0
                         self._LE = '0'
                         self._RTF = '0'
-                        self._sendBytes('OK<CR>')
+                        self._sendBytes('OK')
                     elif actionCMD[1] == '0' and self._enable == 0:
-                        self._sendBytes('OK<CR>')
+                        self._sendBytes('OK')
                     else:
                         self._sendBytes('?8')
 
                 elif actionCMD[0] == 'FL':              # Fire laser command
-                    if self._RTF == '1' and (self._energyMode == 0 or self._energyMode == 1) and self._LE == '1' and self._RTE == '1':
+                    if self._RTF == '1' and (self._energyMode == 0 or self._energyMode == 2) and self._LE == '1' and self._RTE == '1':
                         self._t3.start()
-                        self._sendBytes('OK<CR>')
+                        self._sendBytes('OK')
                     else:
                         self._sendBytes('?8')
                         
                 elif actionCMD[0] == 'PE':
                     self._pulsePeriod = float(actionCMD[1])
-                    self._sendBytes('OK<CR>')
+                    self._sendBytes('OK')
 
                 elif actionCMD[0] == 'PM':
                     self._pulseMODE = int(actionCMD[1])
-                    self._sendBytes('OK<CR>')
+                    self._sendBytes('OK')
 
                 elif actionCMD[0] == 'RC':
                     self._recallSettings = int(actionCMD[1])
-                    self._sendBytes('OK<CR>')
+                    self._sendBytes('OK')
 
                 elif actionCMD[0] == 'RR':
                     self._repitionRate = float(actionCMD[1])
-                    self._sendBytes('OK<CR>')
+                    self._sendBytes('OK')
 
                 elif actionCMD[0] == 'SV':
                     self._saveSettings = int(actionCMD[1])
-                    self._sendBytes('OK<CR>')
+                    self._sendBytes('OK')
 
                 elif actionCMD[0] == 'UC':
                     self._userShotCount = int(actionCMD[1])
-                    self._sendBytes('OK<CR>')
+                    self._sendBytes('OK')
 
                 else:
                     self._sendBytes('?1')
@@ -269,14 +269,12 @@ class Serial:
                 actionCMD = strippedCMD[1].split()
                 if actionCMD[0] == 'RS':
                     self._initializeVars()
-                    self._sendBytes('OK<CR>')
+                    self._sendBytes('OK')
 
                 else:
-                    print('here')
                     self._sendBytes('?1')
                 
         else:
-            print('here 2')
             self._sendBytes('?1')
           
         return None
@@ -293,7 +291,7 @@ class Serial:
                 self._sendData = self._sendData[i+1:]
             else:
                 send += self._sendData[i]
-                self._sendData[i+1:]
+                self._sendData = self._sendData[i+1:]
         return send.encode('ascii')
 
 
@@ -309,18 +307,18 @@ class Serial:
 
 
     def _sendBytes(self, sendValue):
-        self._sendData += '{}\n'.format(str(sendValue))
+        self._sendData += '{}\r\n'.format(str(sendValue))
         return None
 
 
 
     def _packingSSBinary(self):  # This grabs all system status values and converts them into a 16 bit decimal
         # Putting all status bits into 16 bit string
-        SixteenBit = self._spare + self._spare + self._HPM + self._LPM + self._RTF + self._RTE + self._PF + self._EOT + self._ROT + self._EI + self._reserved + self._reserved + self._DET + self._reserved + self._LA + self._LE
+        SixteenBit = list(self._spare + self._spare + self._HPM + self._LPM + self._RTF + self._RTE + self._PF + self._EOT + self._ROT + self._EI + self._reserved + self._reserved + self._DET + self._reserved + self._LA + self._LE)
         power = 0
         decimal = 0
-        for i in (SixteenBit):       # Converting 16 bit string into 16 bit decimal value
-            if i == '1':
+        for i in reversed(range(len((SixteenBit)))):       # Converting 16 bit string into 16 bit decimal value
+            if SixteenBit[i] == '1':
                 decimal += 2**power
             power += 1
         return decimal
@@ -328,7 +326,7 @@ class Serial:
 
 
     def __str__(self):
-        return "Serial<id=0x8a4c71>, open={}(port='{}', baudrate={})".format(self._isOpen, self.port, self.baudrate)
+        return "Serial<id=0x8a4c71>, open={}, port='{}', baudrate={}".format(self._isOpen, self.port, self.baudrate)
 
     def __repr__(self):
         return self.__str__()
@@ -361,12 +359,12 @@ class Serial:
         self._currentMeasurement = 0
         self._latchedStatus = 0
         
-        self._pulsePeriod = 0
+        self._pulsePeriod = 2   # Starting pulse period at arbitrary two seconds
         self._pulsePeriodMIN = 0
         self._pulsePeriodMAX = 3
         self._pulseMODE = 0     # 0 - Continuous, 1 = single shot, 2 = burst
         self._recallSettings = 0
-        self._repititionRate = 1
+        self._repititionRate = 5
         self._systemShotCount = 0
         self._saveSettings = 0
         self._thermistorTemp = 0
@@ -410,8 +408,7 @@ class Serial:
     def _firingTimer(self):
         self._fireLaser = 1
         self._LA = '1'
-        #time.sleep(self._pulsePeriod)
-        time.sleep(30)
+        time.sleep(self._pulsePeriod)
         self._fireLaser = 0
         self._LA = '0'
 
@@ -419,4 +416,3 @@ class Serial:
 ### Error Types ###
 class PortError(Exception):
     pass
-    
