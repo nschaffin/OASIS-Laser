@@ -36,8 +36,8 @@ class Serial:
 
     def write(self, command):
         # Here I need to implement all of the stuff
-        if self._isOpen == False:
-            raise PortError('Port Not Opened')
+        #if self._isOpen == False:                              # You don't have to open the port anymore
+        #    raise PortError('Port Not Opened')
         if type(command) == bytes:
             commandDecoded = str(repr(command.decode('ascii'))).strip("'")
             print("Laser recieved command: {}".format(commandDecoded))
@@ -70,7 +70,6 @@ class Serial:
             strippedCMD.append(strip)
 
         else:
-            print('hi')
             self._sendBytes('?1')
             return None
 
@@ -192,28 +191,58 @@ class Serial:
             elif len(strippedCMD[1].split()) == 2:                          # Action commands
                 actionCMD = strippedCMD[1].split()
                 if actionCMD[0] == 'BC':
-                    self._burstCount = int(actionCMD[1])
-                    self._sendBytes('OK')
+                    if 1 <= int(actionCMD[1]) <= 65535:
+                        self._burstCount = int(actionCMD[1])
+                        self._sendBytes('OK')
+                    else:
+                        self._sendBytes('?5')
 
                 elif actionCMD[0] == 'DC':
-                    self._diodeCurrent = int(actionCMD[1])
-                    self._sendBytes('OK')
+                    if self._diodeCurrentMIN <= int(actionCMD[1]) <= self._diodeCurrentMAX:
+                        self._diodeCurrent = int(actionCMD[1])
+                        self._sendBytes('OK')
+                    else:
+                        self._sendBytes('?5')
 
                 elif actionCMD[0] == 'DT':
-                    self._diodeTrigger = int(actionCMD[1])
-                    self._sendBytes('OK')
+                    if int(actionCMD[1]) == 1 or int(actionCMD[1]) == 0:
+                        self._diodeTrigger = int(actionCMD[1])
+                        self._sendBytes('OK')
+                    else:
+                        self._sendBytes('?5')
 
                 elif actionCMD[0] == 'DW':
-                    self._diodeWidth = int(actionCMD[1])
-                    self._sendBytes('OK')
+                    if self._diodeWidthMIN <= int(actionCMD[1]) <= self._diodeWidthMAX:
+                        self._diodeWidth = int(actionCMD[1])
+                        self._sendBytes('OK')
+                    else:
+                        self._sendBytes('?5')
 
                 elif actionCMD[0] == 'EC':
-                    self._echo = int(actionCMD[1])
-                    self._sendBytes('OK')
+                    if int(actionCMD[1]) == 0 or int(actionCMD[1]) == 1:
+                        self._echo = int(actionCMD[1])
+                        self._sendBytes('OK')
+                    else:
+                        self._sendBytes('?5')
 
                 elif actionCMD[0] == 'EM':
-                    self._energyMode = int(actionCMD[1])
-                    self._sendBytes('OK')
+                    if int(actionCMD[1]) == 0:
+                        self._energyMode = int(actionCMD[1])
+                        self._HPM = '0'
+                        self._LPM = '0'
+                        self._sendBytes('OK')
+                    elif int(actionCMD[1]) == 1:
+                        self._energyMode = int(actionCMD[1])
+                        self._LPM = '1'
+                        self._HPM = '0'
+                        self._sendBytes('OK')
+                    elif int(actionCMD[1]) == 2:
+                        self._energyMode = int(actionCMD[1])
+                        self._LPM = '0'
+                        self._HPM = '1'
+                        self._sendBytes('OK')
+                    else:
+                        self._sendBytes('?5')
 
                 elif actionCMD[0] == 'EN':              # Arm command
                     if self._RTE == '1' and actionCMD[1] == '1':
@@ -239,28 +268,46 @@ class Serial:
                         self._sendBytes('?8')
                         
                 elif actionCMD[0] == 'PE':
-                    self._pulsePeriod = float(actionCMD[1])
-                    self._sendBytes('OK')
+                    if self._pulsePeriodMIN <= float(actionCMD[1]) <= self._pulsePeriodMax:
+                        self._pulsePeriod = float(actionCMD[1])
+                        self._sendBytes('OK')
+                    else:
+                        self._sendBytes('?5')
 
                 elif actionCMD[0] == 'PM':
-                    self._pulseMODE = int(actionCMD[1])
-                    self._sendBytes('OK')
+                    if int(actionCMD[1]) == 0 or int(actionCMD[1]) == 1 or int(actionCMD[1]) == 2: 
+                        self._pulseMODE = int(actionCMD[1])
+                        self._sendBytes('OK')
+                    else:
+                        self._sendBytes('?5')
 
                 elif actionCMD[0] == 'RC':
-                    self._recallSettings = int(actionCMD[1])
-                    self._sendBytes('OK')
+                    if 1 <= int(actionCMD[1]) <= 6:
+                        self._recallSettings = int(actionCMD[1])
+                        self._sendBytes('OK')
+                    else:
+                        self._sendBytes('?5')
 
                 elif actionCMD[0] == 'RR':
-                    self._repitionRate = float(actionCMD[1])
-                    self._sendBytes('OK')
+                    if self._repititionRateMIN <= int(actionCMD[1]) <= self._repititionRateMAX:
+                        self._repitionRate = float(actionCMD[1])
+                        self._sendBytes('OK')
+                    else:
+                        self._sendBytes('?5')
 
                 elif actionCMD[0] == 'SV':
-                    self._saveSettings = int(actionCMD[1])
-                    self._sendBytes('OK')
+                    if 1 <= int(actionCMD[1]) <= 6:
+                        self._saveSettings = int(actionCMD[1])
+                        self._sendBytes('OK')
+                    else:
+                        self._sendBytes('?5')
 
                 elif actionCMD[0] == 'UC':
                     self._userShotCount = int(actionCMD[1])
                     self._sendBytes('OK')
+
+                elif actionCMD[0] == 'BV' or actionCMD [0] == 'DC:MIN' or actionCMD [0] == 'DC:MAX' or actionCMD [0] == 'DW:MIN' or actionCMD [0] == 'DW:MAX' or actionCMD [0] == 'FT' or actionCMD [0] == 'FT:MAX' or actionCMD [0] == 'FV' or actionCMD [0] == 'ID' or actionCMD [0] == 'IM' or actionCMD [0] == 'LS' or actionCMD [0] == 'PE:MIN' or actionCMD [0] == 'PE:MAX' or actionCMD [0] == 'RR:MIN' or actionCMD [0] == 'RR:MAX' or actionCMD [0] == 'SC' or actionCMD [0] == 'SS' or actionCMD [0] == 'TR:MIN' or actionCMD [0] == 'TR:MAX':
+                    self._sendBytes('?6')
 
                 else:
                     self._sendBytes('?1')
@@ -271,6 +318,9 @@ class Serial:
                     self._initializeVars()
                     self._sendBytes('OK')
 
+                elif actionCMD[0] == 'BC' or actionCMD[0] == 'DC' or actionCMD[0] == 'DT' or actionCMD[0] == 'DW' or actionCMD[0] == 'EC' or actionCMD[0] == 'EM' or actionCMD[0] == 'EN' or actionCMD[0] == 'FL' or actionCMD[0] == 'PE' or actionCMD[0] == 'PM' or actionCMD[0] == 'RC' or actionCMD[0] == 'RR' or actionCMD[0] == 'SV' or actionCMD[0] == 'UC':
+                    self._sendBytes('?5')
+                
                 else:
                     self._sendBytes('?1')
                 
@@ -283,6 +333,10 @@ class Serial:
     def read(self, n=1):                    # Needs fixed so it doesn't send \n
         if self._sendData == '':
             return None
+        elif self._sendData == '\n':
+            self._sendData = ''
+            return None
+        
         send = ''
         for i in range(n):
             if len(self._sendData) == 0:
@@ -298,11 +352,39 @@ class Serial:
     def readline(self):                 
         if self._sendData == '':
             return None
+        elif self._sendData == '\n':
+            self._sendData = ''
+            return None
 
         newlineIndex = self._sendData.index("\n")
             
         send = self._sendData[0:newlineIndex]
         self._sendData = self._sendData[newlineIndex+1:]
+        return send.encode('ascii')
+
+
+    def read_until(self, expected):
+        if self._sendData == '':
+            return None
+        elif self._sendData == '\n':
+            self._sendData = ''
+            return None
+
+        firstNewLine = self._sendData.index("\n")
+        expectedIndex = self._sendData.index(expected)
+        
+        if firstNewLine < expectedIndex:
+            if firstNewLine == 0:
+                send = self._sendData[1:expectedIndex]
+                self._sendData = self._sendData[expectedIndex+1:]
+            else:
+                send = self._sendData[0:firstNewLine] + self._sendData[firstNewLine+1:expectedIndex]
+                self._sendData = self._sendData[expectedIndex+1:]
+
+        else:
+            send = send = self._sendData[0:expectedIndex]
+            self._sendData = self._sendData[expectedIndex+1]
+
         return send.encode('ascii')
 
 
@@ -342,11 +424,11 @@ class Serial:
 
         self._diodeCurrent = 0
         self._diodeCurrentMIN = 0
-        self._diodeCurrentMAX = 0
+        self._diodeCurrentMAX = 10000000
         self._diodeTrigger = 0
         self._diodeWidth = 0
         self._diodeWidthMIN = 0
-        self._diodeWidthMAX = 0
+        self._diodeWidthMAX = 10000000
 
         self._echo = 0
 
@@ -354,7 +436,7 @@ class Serial:
         self._enable = 0
         self._fireLaser = 0
         self._FETtemp = 0       # Temp in Celsius
-        self._FETtempMAX = 0
+        self._FETtempMAX = 10000000
         self._FETvolts = 0      # Voltage
         self._currentMeasurement = 0
         self._latchedStatus = 0
@@ -364,12 +446,14 @@ class Serial:
         self._pulsePeriodMAX = 3
         self._pulseMODE = 0     # 0 - Continuous, 1 = single shot, 2 = burst
         self._recallSettings = 0
-        self._repititionRate = 5
+        self._repititionRate = 1
+        self._repititionRateMIN = 1
+        self._repititionRateMAX = 5
         self._systemShotCount = 0
         self._saveSettings = 0
         self._thermistorTemp = 0
         self._thermistorTempMIN = 0
-        self._thermistorTempMAX = 0
+        self._thermistorTempMAX = 10000000
         self._userShotCount = 0
 
 
