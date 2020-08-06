@@ -264,8 +264,9 @@ class Laser:
 
     def set_pulse_width(self, width):
         """Sets the diode pulse width. Width is in seconds, may be a float. Returns True on nominal response, False otherwise."""
-        if width <= 0:
-            raise ValueError("Pulse width must be a positive, non-zero value!")
+
+        if type(width) != int and type(width) != float or width <= 0:
+            raise ValueError("Pulse width must be a positive, non-zero number value (no strings)!")
 
         width = float(width)
 
@@ -304,7 +305,7 @@ class Laser:
             self.energyMode = 0 # Whenever diode current is adjusted manually, the energy mode is set to manual.
             return True
         return False
-        
+
     def set_energy_mode(self, mode):
         """Sets the energy mode of the laser. 0 = manual, 1 = low power, 2 = high power. Returns True on nominal response, False otherwise."""
         if type(mode) != int:
