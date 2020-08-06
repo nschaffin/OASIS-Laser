@@ -51,6 +51,22 @@ class TestLaserCommands(unittest.TestCase):
         assert l.arm() == True
         serial_mock.write.assert_called_once_with(";LA:EN 1\r".encode("ascii"))
 
+    def test_disarm_command(self):
+        """Tests Laser.disarm(), should return True because we are feeding it a nominal response, and this should result in serial.write being called with the correct command"""
+        serial_mock = Mock()
+        serial_mock.read_until = Mock(return_value="OK\r")
+        serial_mock.write = Mock() # NOTE: Major difference from pyserial class, does not return the number of bytes written.
+
+        l = Laser()
+
+        # Connect our laser to our mock serial
+        l._ser = serial_mock
+        l.connected = True
+
+        # Now check the arm command
+        assert l.disarm() == True
+        serial_mock.write.assert_called_once_with(";LA:EN 0\r".encode("ascii"))
+
     def test_diode_trigger_command(self):
         """Tests Laser.set_diode_trigger, feeds in a mock serial object. Makes sure that the correct data is written and that the properties of the class are changed."""
         serial_mock = Mock()
