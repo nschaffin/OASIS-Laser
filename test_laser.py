@@ -19,6 +19,16 @@ class TestLaserCommands(unittest.TestCase):
         l = Laser()
         assert l._device_address == "LA"
 
+    def test_constants(self):
+        """Ensures that the constants/enums set for energy modes and pulse modes are correct according to the user manual."""
+        assert Laser.MANUAL_ENERGY == 0
+        assert Laser.LOW_ENERGY == 1
+        assert Laser.HIGH_ENERGY == 2
+
+        assert Laser.CONTINUOUS == 0
+        assert Laser.SINGLE_SHOT == 1
+        assert Laser.BURST == 2
+
     def test_send_command(self):
         """Tests Laser._send_command, feeds in a mock serial object. Checking to make sure that write is called and that it returns the reponse we give it."""
         serial_mock = Mock()
