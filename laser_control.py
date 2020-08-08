@@ -68,7 +68,7 @@ class Laser:
         ----------
         cmd : string
             This contains the ASCII of the command to be sent. Should not include the prefix, address, delimiter, or terminator
-            
+
         Returns
         ----------
         response : bytes
@@ -76,13 +76,13 @@ class Laser:
         """
         if len(cmd) == 0:
             return
-        
+
         if not self.connected:
             raise ConnectionError("Not connected to a serial port. Please call connect() before issuing any commands!")
-        
+
         # Form the complete command string, in order this is: prefix, address, delimiter, command, and terminator
         cmd_complete = ";" + self._device_address + ":" + cmd + "\r"
-        
+
         with self._lock: # make sure we're the only ones on the serial line
             self._ser.write(cmd_complete.encode("ascii")) # write the complete command to the serial device
             time.sleep(0.01)
@@ -136,7 +136,6 @@ class Laser:
                 t.start()
                 self._startup = False
 
-    # Added: changed lock structure
     def fire_laser(self):
         """
             Sends commands to laser to have it fire
@@ -178,7 +177,6 @@ class Laser:
         if response and len(response) == 2:
             return response[1] == b'1'
 
-    # Added: FET temperature
     def fet_temp_check(self):
         """
         Checks the FET temperature the laser
@@ -191,7 +189,6 @@ class Laser:
         response = self._send_command('FT?')
         return response[:-4]
 
-    # Added: Resonator temperature
     def resonator_temp_check(self):
         """
         Checks the resonator temperature the laser
@@ -204,7 +201,6 @@ class Laser:
         response - self._send_command('TR?')
         return response[:-4]
 
-    # Added: FET voltage
     def fet_voltage_check(self):
         """
         Checks the FET voltage of the laser
@@ -229,7 +225,6 @@ class Laser:
         response = self._send_command('IM?')
         return response[:-4]
 
-    # Added: emergency stop
     def emergency_stop(self):
         """Immediately sends command to laser to stop firing"""
         self._send_command('FL 0')
@@ -241,7 +236,7 @@ class Laser:
     def disarm(self):
         """Sends command to laser to disarm. Returns True on nominal response."""
         return self._send_command('EN 0') == "OK\r"
-    
+
     def set_pulse_mode(self, mode):
         """Sets the laser pulse mode. 0 = continuous, 1 = single shot, 2 = burst. Returns True on nominal response."""
         if not mode in (0,1,2) or not type(mode) == int:
@@ -251,7 +246,7 @@ class Laser:
             self.pulseMode = mode
             return True
         return False
-    
+
     def set_diode_trigger(self, trigger):
         """Sets the diode trigger mode. 0 = Software/internal. 1 = Hardware/external trigger. Returns True on nominal response."""
         if trigger != 0 and trigger != 1 or not type(trigger) == int:
@@ -299,7 +294,7 @@ class Laser:
         """Sets the diode current of the laser. Must be a positive non-zero integer (maybe even a float?). Returns True on nominal response, False otherwise."""
         if (type(current) != int and type(current) != float) or current <= 0:
             raise ValueError("Diode current must be a positive, non-zero number!")
-        
+
         if self._send_command("DC " + str(current)) == "OK\r":
             self.diodeCurrent = current
             self.energyMode = 0 # Whenever diode current is adjusted manually, the energy mode is set to manual.
