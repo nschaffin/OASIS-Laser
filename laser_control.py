@@ -328,6 +328,24 @@ class Laser:
 
         for i in cmd_strings:
             self._send_command(i)
+    @staticmethod
+    def get_error_code_description(code):
+        if code == b'?1':
+            return "Command not recognized."
+        elif code == b'?2':
+            return "Missing command keyword."
+        elif code == b'?3':
+            return "Invalid command keyword."
+        elif code == b'?4':
+            return "Missing Parameter"
+        elif code == b'?5':
+            return "Invalid Parameter"
+        elif code == b'?6':
+            return "Query only. Command needs a question mark."
+        elif code == b'?7':
+            return "Invalid query. Command does not have a query function."
+        elif code == b'?8':
+            return "Command unavailable in current system state."
 
 
 def list_available_ports():
