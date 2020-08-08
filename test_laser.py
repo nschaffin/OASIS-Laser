@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import Mock
-from laser_control import Laser, LaserCommandError
+from laser_control import Laser, LaserCommandError, LaserStatusResponse
 
 class TestLaserCommands(unittest.TestCase):
 
@@ -76,6 +76,19 @@ class TestLaserCommands(unittest.TestCase):
         # Now check the arm command
         assert l.disarm() == True
         serial_mock.write.assert_called_once_with(";LA:EN 0\r".encode("ascii"))
+
+    def test_status_class(self):
+        """Tests to make sure the LaserStatusResponse class parses response strings correctly."""
+        s = LaserStatusResponse(b'3075\r') # This example is pulled from the user manual
+        assert s.ready_to_enable
+        assert s.ready_to_fire
+        assert s.laser_enabled
+        assert s.laser_active
+        assert not s.high_power_mode
+        assert not s.low_power_mode
+        assert not s.resonator_over_temp
+        assert not s.electrical_over_temp
+        assert not s.external_interlock
 
     def test_diode_trigger_command(self):
         """Tests Laser.set_diode_trigger, feeds in a mock serial object. Makes sure that the correct data is written and that the properties of the class are changed."""

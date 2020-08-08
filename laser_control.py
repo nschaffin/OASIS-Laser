@@ -6,6 +6,26 @@ import threading as thread
 class LaserCommandError(Exception):
     pass
 
+class LaserStatusResponse():
+    def __init__(self, response):
+        """Parses the response string into a new LaserStatusResponseObject"""
+
+        i = int(response) # slice off the \r at the end
+        self.laser_enabled = bool(i & 1)
+        self.laser_active = bool(i & 3)
+        self.diode_external_trigger = int(i & 8)
+        self.external_interlock = bool(i & 64)
+        self.resonator_over_temp = bool(i & 128)
+        self.electrical_over_temp = bool(i & 256)
+        self.power_failure = bool(i & 512)
+        self.ready_to_enable = bool(i & 1024)
+        self.ready_to_fire = bool(i & 2048)
+        self.low_power_mode = bool(i & 4096)
+        self.high_power_mode = bool(i & 8192)
+
+    def __str__(self):
+        """Returns a string representation of the laser status. Should be an ASCII number as shown in the user manual."""
+
 class Laser:
     # Constants for Energy Mode
     MANUAL_ENERGY = 0
@@ -153,12 +173,15 @@ class Laser:
         """
             Sends commands to laser to have it fire
         """
-        self._send_command('FL 1')
-        response = self._send_command('SS?')
-
-        if response != '3075\r':
+        fire_response = self._send_command('FL 1')
+        if fire_response != b"OK\r":
+            raise LaserCommandError(Laser.get_error_code_description(fire_response))
+        #TODOL Add in command to check status
+        status = self.get_status()
+        response = ""
+        if response != '3075\r': # TODO: This seems wrong. Check to make sure that this is the EXACT status string that will be returned during firing
             self._send_command('FL 0')  # aborts if laser fails to fire
-            raise RuntimeError('Laser Failed to Fire')
+            raise LaserCommandError('Laser Failed to Fire')
         else:
             if self.burstDuration >= 2:
                 self._kicker_control = True
@@ -240,7 +263,11 @@ class Laser:
 
     def emergency_stop(self):
         """Immediately sends command to laser to stop firing"""
-        self._send_command('FL 0')
+        response = self._send_command('FL 0')
+        if reponse == b"OK\r":
+            return True
+
+        raise LaserCommandError(Laser.get_error_code_description(response))
 
     def arm(self):
         """Sends command to laser to arm. Returns True on nominal response."""
