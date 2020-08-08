@@ -231,18 +231,18 @@ class Laser:
 
     def arm(self):
         """Sends command to laser to arm. Returns True on nominal response."""
-        return self._send_command('EN 1') == "OK\r"
+        return self._send_command('EN 1') == b"OK\r"
 
     def disarm(self):
         """Sends command to laser to disarm. Returns True on nominal response."""
-        return self._send_command('EN 0') == "OK\r"
+        return self._send_command('EN 0') == b"OK\r"
 
     def set_pulse_mode(self, mode):
         """Sets the laser pulse mode. 0 = continuous, 1 = single shot, 2 = burst. Returns True on nominal response."""
         if not mode in (0,1,2) or not type(mode) == int:
             raise ValueError("Invalid value for pulse mode! 0, 1, or 2 are accepted values.")
 
-        if self._send_command("PM " + str(mode)) == "OK\r":
+        if self._send_command("PM " + str(mode)) == b"OK\r":
             self.pulseMode = mode
             return True
         return False
@@ -252,7 +252,7 @@ class Laser:
         if trigger != 0 and trigger != 1 or not type(trigger) == int:
             raise ValueError("Invalid value for trigger mode! 0 or 1 are accepted values.")
 
-        if self._send_command("DT " + str(trigger)) == "OK\r":
+        if self._send_command("DT " + str(trigger)) == b"OK\r":
             self.diodeTrigger = trigger
             return True
         return False
@@ -265,7 +265,7 @@ class Laser:
 
         width = float(width)
 
-        if self._send_command("DW " + str(width)) == "OK\r":
+        if self._send_command("DW " + str(width)) == b"OK\r":
             self.pulseWidth = width
             return True
         return False
@@ -275,7 +275,7 @@ class Laser:
         if count <= 0 or not type(count) == int:
             raise ValueError("Burst count must be a positive, non-zero integer!")
 
-        if self._send_command("BC " + str(count)) == "OK\r":
+        if self._send_command("BC " + str(count)) == b"OK\r":
             self.burstCount = count
             return True
         return False
@@ -285,7 +285,7 @@ class Laser:
         if not type(count) == int or rate < 1 or rate > 5:
             raise ValueError("Laser repetition rate must be a positive integer from 1 to 5!")
 
-        if self._send_command("RR " + str(rate)) == "OK\r":
+        if self._send_command("RR " + str(rate)) == b"OK\r":
             self.repRate = rate
             return True
         return False
@@ -295,7 +295,7 @@ class Laser:
         if (type(current) != int and type(current) != float) or current <= 0:
             raise ValueError("Diode current must be a positive, non-zero number!")
 
-        if self._send_command("DC " + str(current)) == "OK\r":
+        if self._send_command("DC " + str(current)) == b"OK\r":
             self.diodeCurrent = current
             self.energyMode = 0 # Whenever diode current is adjusted manually, the energy mode is set to manual.
             return True
@@ -309,7 +309,7 @@ class Laser:
         if not mode in (0, 1, 2):
             raise ValueError("Valid values for energy mode are 0, 1 and 2!")
 
-        if self._send_command("EM " + str(mode)) == "OK\r":
+        if self._send_command("EM " + str(mode)) == b"OK\r":
             self.energyMode = mode
             return True
         return False
