@@ -4,6 +4,16 @@ import time
 import threading as thread
 
 class Laser:
+    # Constants for Energy Mode
+    MANUAL_ENERGY = 0
+    LOW_ENERGY = 1
+    HIGH_ENERGY = 2
+
+    # Constants for shot mode
+    CONTINUOUS = 0
+    SINGLE_SHOT = 1
+    BURST = 2
+
     def __init__(self, pulseMode = 0, repRate = 10, burstCount = 10000, diodeCurrent = .1, energyMode = 0, pulseWidth = 10, diodeTrigger = 0):
         self._ser = None
         self.pulseMode = pulseMode # NOTE: Pulse mode 0 = continuous is actually implemented as 2 = burst mode in this code.
