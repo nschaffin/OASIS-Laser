@@ -3,6 +3,9 @@ import serial.tools.list_ports
 import time
 import threading as thread
 
+class LaserCommandError(Exception):
+    pass
+
 class Laser:
     # Constants for Energy Mode
     MANUAL_ENERGY = 0
@@ -241,31 +244,40 @@ class Laser:
 
     def arm(self):
         """Sends command to laser to arm. Returns True on nominal response."""
-        return self._send_command('EN 1') == b"OK\r"
+        response = self._send_command('EN 1')
+        if response == b"OK\r":
+            return True
+        raise LaserCommandError(Laser.get_error_code_description(response))
 
     def disarm(self):
         """Sends command to laser to disarm. Returns True on nominal response."""
-        return self._send_command('EN 0') == b"OK\r"
+        response = self._send_command('EN 0')
+
+        if response == b"OK\r":
+            return True
+        raise LaserCommandError(Laser.get_error_code_description(response))
 
     def set_pulse_mode(self, mode):
         """Sets the laser pulse mode. 0 = continuous, 1 = single shot, 2 = burst. Returns True on nominal response."""
         if not mode in (0,1,2) or not type(mode) == int:
             raise ValueError("Invalid value for pulse mode! 0, 1, or 2 are accepted values.")
 
-        if self._send_command("PM " + str(mode)) == b"OK\r":
+        response = self._send_command("PM " + str(mode))
+        if response == b"OK\r":
             self.pulseMode = mode
             return True
-        return False
+        raise LaserCommandError(Laser.get_error_code_description(response))
 
     def set_diode_trigger(self, trigger):
         """Sets the diode trigger mode. 0 = Software/internal. 1 = Hardware/external trigger. Returns True on nominal response."""
         if trigger != 0 and trigger != 1 or not type(trigger) == int:
             raise ValueError("Invalid value for trigger mode! 0 or 1 are accepted values.")
 
-        if self._send_command("DT " + str(trigger)) == b"OK\r":
+        response = self._send_command("DT " + str(trigger))
+        if response == b"OK\r":
             self.diodeTrigger = trigger
             return True
-        return False
+        raise LaserCommandError(Laser.get_error_code_description(response))
 
     def set_pulse_width(self, width):
         """Sets the diode pulse width. Width is in seconds, may be a float. Returns True on nominal response, False otherwise."""
@@ -275,41 +287,45 @@ class Laser:
 
         width = float(width)
 
-        if self._send_command("DW " + str(width)) == b"OK\r":
+        response = self._send_command("DW " + str(width))
+        if response == b"OK\r":
             self.pulseWidth = width
             return True
-        return False
+        raise LaserCommandError(Laser.get_error_code_description(response))
 
     def set_burst_count(self, count):
         """Sets the burst count of the laser. Must be a positive non-zero integer. Returns True on nominal response, False otherwise."""
         if count <= 0 or not type(count) == int:
             raise ValueError("Burst count must be a positive, non-zero integer!")
 
-        if self._send_command("BC " + str(count)) == b"OK\r":
+        response = self._send_command("BC " + str(count))
+        if response == b"OK\r":
             self.burstCount = count
             return True
-        return False
+        raise LaserCommandError(Laser.get_error_code_description(response))
 
     def set_rep_rate(self, rate):
         """Sets the repetition rate of the laser. Rate must be a positive integer from 1 to 5. Returns True on nominal response, False otherwise."""
         if not type(count) == int or rate < 1 or rate > 5:
             raise ValueError("Laser repetition rate must be a positive integer from 1 to 5!")
 
-        if self._send_command("RR " + str(rate)) == b"OK\r":
+        response = self._send_command("RR " + str(rate))
+        if response == b"OK\r":
             self.repRate = rate
             return True
-        return False
+        raise LaserCommandError(Laser.get_error_code_description(response))
 
     def set_diode_current(self, current):
         """Sets the diode current of the laser. Must be a positive non-zero integer (maybe even a float?). Returns True on nominal response, False otherwise."""
         if (type(current) != int and type(current) != float) or current <= 0:
             raise ValueError("Diode current must be a positive, non-zero number!")
 
-        if self._send_command("DC " + str(current)) == b"OK\r":
+        response = self._send_command("DC " + str(current))
+        if response == b"OK\r":
             self.diodeCurrent = current
             self.energyMode = 0 # Whenever diode current is adjusted manually, the energy mode is set to manual.
             return True
-        return False
+        raise LaserCommandError(Laser.get_error_code_description(response))
 
     def set_energy_mode(self, mode):
         """Sets the energy mode of the laser. 0 = manual, 1 = low power, 2 = high power. Returns True on nominal response, False otherwise."""
@@ -319,10 +335,11 @@ class Laser:
         if not mode in (0, 1, 2):
             raise ValueError("Valid values for energy mode are 0, 1 and 2!")
 
-        if self._send_command("EM " + str(mode)) == b"OK\r":
+        response = self._send_command("EM " + str(mode))
+        if response == b"OK\r":
             self.energyMode = mode
             return True
-        return False
+        raise LaserCommandError(Laser.get_error_code_description(response))
 
     def update_settings(self):
         # cmd format, ignore brackets => ;[Address]:[Command String][Parameters]\r
@@ -338,6 +355,7 @@ class Laser:
 
         for i in cmd_strings:
             self._send_command(i)
+
     @staticmethod
     def get_error_code_description(code):
         if code == b'?1':
@@ -356,7 +374,8 @@ class Laser:
             return "Invalid query. Command does not have a query function."
         elif code == b'?8':
             return "Command unavailable in current system state."
-
+        else:
+            return "Error description not found, response code given: " + code
 
 def list_available_ports():
     return serial.tools.list_ports.comports()

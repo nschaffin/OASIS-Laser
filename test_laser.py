@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import Mock
-from laser_control import Laser
+from laser_control import Laser, LaserCommandError
 
 class TestLaserCommands(unittest.TestCase):
 
@@ -101,7 +101,9 @@ class TestLaserCommands(unittest.TestCase):
         serial_mock.read_until = Mock(return_value=b"?1") # Make sure we return False is the laser returns an error
         serial_mock.write = Mock()
 
-        assert not l.set_diode_trigger(0)
+        with self.assertRaises(LaserCommandError):
+            l.set_diode_trigger(0)
+
         serial_mock.write.assert_called_once_with(";LA:DT 0\r".encode("ascii"))
         assert l.diodeTrigger == 1 # This value should have NOT changed since this command failed.
 
@@ -132,7 +134,9 @@ class TestLaserCommands(unittest.TestCase):
         serial_mock.read_until = Mock(return_value=b"?1") # Make sure we return False is the laser returns an error
         serial_mock.write = Mock()
 
-        assert not l.set_pulse_width(0.2)
+        with self.assertRaises(LaserCommandError):
+            l.set_pulse_width(0.2)
+
         serial_mock.write.assert_called_once_with(";LA:DW 0.2\r".encode("ascii"))
         assert l.pulseWidth == 0.1 # This value should have NOT changed since this command failed.
 
@@ -160,7 +164,9 @@ class TestLaserCommands(unittest.TestCase):
         serial_mock.read_until = Mock(return_value=b"?1") # Make sure we return False is the laser returns an error
         serial_mock.write = Mock()
 
-        assert not l.set_energy_mode(2)
+        with self.assertRaises(LaserCommandError):
+            l.set_energy_mode(2)
+
         serial_mock.write.assert_called_once_with(";LA:EM 2\r".encode("ascii"))
         assert l.energyMode == 1 # This value should have NOT changed since this command failed.
 
@@ -198,7 +204,8 @@ class TestLaserCommands(unittest.TestCase):
         # Reset the energy mode to test that it DOES NOT gets switched to manual (0)
         l.energyMode = 2
 
-        assert not l.set_diode_current(50)
+        with self.assertRaises(LaserCommandError):
+            l.set_diode_current(50)
         serial_mock.write.assert_called_once_with(";LA:DC 50\r".encode("ascii"))
         assert l.diodeCurrent == 100 # This value should have NOT changed since this command failed.
         assert l.energyMode == 2 # This also should not have changed because the command failed.
