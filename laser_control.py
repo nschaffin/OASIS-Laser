@@ -13,7 +13,7 @@ class LaserStatusResponse():
         i = int(response) # slice off the \r at the end
         self.laser_enabled = bool(i & 1)
         self.laser_active = bool(i & 2)
-        self.diode_external_trigger = int(i & 8)
+        self.diode_external_trigger = bool(i & 8)
         self.external_interlock = bool(i & 64)
         self.resonator_over_temp = bool(i & 128)
         self.electrical_over_temp = bool(i & 256)
