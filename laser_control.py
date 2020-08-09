@@ -12,7 +12,7 @@ class LaserStatusResponse():
 
         i = int(response) # slice off the \r at the end
         self.laser_enabled = bool(i & 1)
-        self.laser_active = bool(i & 3)
+        self.laser_active = bool(i & 2)
         self.diode_external_trigger = int(i & 8)
         self.external_interlock = bool(i & 64)
         self.resonator_over_temp = bool(i & 128)
@@ -25,6 +25,31 @@ class LaserStatusResponse():
 
     def __str__(self):
         """Returns a string representation of the laser status. Should be an ASCII number as shown in the user manual."""
+        i = 0
+        if self.laser_enabled:
+            i += 1
+        if self.laser_active:
+            i += 2
+        if self.diode_external_trigger:
+            i += 8
+        if self.external_interlock:
+            i += 64
+        if self.resonator_over_temp:
+            i += 128
+        if self.electrical_over_temp:
+            i += 256
+        if self.power_failure:
+            i += 512
+        if self.ready_to_enable:
+            i += 1024
+        if self.ready_to_fire:
+            i += 2048
+        if self.low_power_mode:
+            i += 4096
+        if self.high_power_mode:
+            i += 8192
+
+        return str(i)
 
 class Laser:
     # Constants for Energy Mode
