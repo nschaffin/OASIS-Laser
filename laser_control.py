@@ -237,7 +237,10 @@ class Laser:
             the lasr is armed
         """
         response = self._send_command('EN?')
-        if response and len(response) == 2:
+        if response[0] == b"?":
+            raise LaserCommandError(Laser.get_error_command_description(response))
+
+        if len(response) == 2:
             return response[1] == b'1'
 
     def fet_temp_check(self):
@@ -250,6 +253,8 @@ class Laser:
             Returns the float value of the FET temperature in bytes string.
         """
         response = self._send_command('FT?')
+        if response[0] == b"?":
+            raise LaserCommandError(Laser.get_error_code_description(response))
         return response[:-4]
 
     def resonator_temp_check(self):
@@ -261,7 +266,10 @@ class Laser:
         resonator_temp : bytes
             Returns the float value of the resonator temperature in bytes string.
         """
-        response - self._send_command('TR?')
+        #TODO: Determine if this is a float or an integer value and return the appropriate data type.
+        response = self._send_command('TR?')
+        if response[0] == b"?":
+            raise LaserCommandError(Laser.get_error_code_description(response))
         return response[:-4]
 
     def fet_voltage_check(self):
@@ -273,7 +281,10 @@ class Laser:
         fet_voltage : bytes
             Returns the float value of the FET voltage in bytes string.
         """
+        #TODO: Determine through testing if this is a float or an integer and perform the appropriate cast before returning.
         response = self._send_command('FV?')
+        if response[0] == b"?":
+            raise LaserCommandError(Laser.get_error_code_description(response))
         return response[:-4]
 
     def diode_current_check(self):
@@ -285,7 +296,10 @@ class Laser:
         diode_current : bytes
             Returns the float value of the diode current in bytes string.
         """
+        #TODO: Determine via testing if this is a float value or integer value, and perform the appropriate cast before returning.
         response = self._send_command('IM?')
+        if response[0] == b"?":
+            raise LaserCommandError(Laser.get_error_code_description(response))
         return response[:-4]
 
     def emergency_stop(self):
