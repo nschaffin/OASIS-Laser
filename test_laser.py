@@ -117,6 +117,7 @@ class TestLaserCommands(unittest.TestCase):
         assert status.laser_enabled
         assert status.ready_to_fire
         assert status.ready_to_enable
+        assert not status.diode_external_trigger
         assert not status.high_power_mode
         assert not status.low_power_mode
         assert not status.resonator_over_temp
