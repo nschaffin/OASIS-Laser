@@ -218,13 +218,15 @@ class Laser:
         Obtains the status of the laser
         Returns
         ______
-        status : bytes
-            Returns the int value of the status of the laser status in bytes string
-                (Sum of 2^13 = High power mode; 2^12 = Low power mode, 2^11 = Ready to fire, 2^10 = Ready to enable
-                2^9 = Power failure, 2^8 = Electrical over temp, 2^7 = Resonator over temp, 2^6 = External interlock,
-                2^3 = diode external trigger, 2^1 = laser active, 2^0 = laser enabled)
+        status : LaserStatusResponse object
+                Returns a LaserStatusResponse object created from the SS? command's response that is received.
         """
-        return self._send_command('SS?')
+        response = self._send_command('SS?')
+
+        if len(response) < 5 or response[0] == "?": # Check to see if we got an error instead
+            raise LaserCommandError(Laser.get_error_code_description(response))
+        else:
+            return LaserStatusResponse(response)
 
     def check_armed(self):
         """
@@ -427,7 +429,7 @@ class Laser:
         elif code == b'?8':
             return "Command unavailable in current system state."
         else:
-            return "Error description not found, response code given: " + code
+            return "Error description not found, response code given: " + str(code)
 
 def list_available_ports():
     return serial.tools.list_ports.comports()

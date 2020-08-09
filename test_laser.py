@@ -90,6 +90,39 @@ class TestLaserCommands(unittest.TestCase):
         assert not s.electrical_over_temp
         assert not s.external_interlock
 
+    def test_get_status(self):
+        """Tests to make sure that the get_status() function operates properly."""
+        serial_mock = Mock()
+        serial_mock.read_until = Mock(return_value=b"?1\r")
+        serial_mock.write = Mock()
+
+        l = Laser()
+        l._ser = serial_mock
+        l.connected = True
+
+        with self.assertRaises(LaserCommandError):
+            l.get_status()
+
+        serial_mock.write.assert_called_once_with(";LA:SS?\r".encode("ascii"))
+
+        # Reset our read and write mocks
+        serial_mock.read_until = Mock(return_value=b"3075\r")
+        serial_mock.write = Mock()
+
+        status = l.get_status()
+
+        serial_mock.write.assert_called_once_with(";LA:SS?\r".encode("ascii"))
+
+        assert status.laser_active
+        assert status.laser_enabled
+        assert status.ready_to_fire
+        assert status.ready_to_enable
+        assert not status.high_power_mode
+        assert not status.low_power_mode
+        assert not status.resonator_over_temp
+        assert not status.electrical_over_temp
+        assert not status.external_interlock
+
     def test_diode_trigger_command(self):
         """Tests Laser.set_diode_trigger, feeds in a mock serial object. Makes sure that the correct data is written and that the properties of the class are changed."""
         serial_mock = Mock()
