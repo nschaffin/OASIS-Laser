@@ -295,7 +295,7 @@ class Serial:
                         self._sendBytes('?8')                       # Command unavailable in current system state
                         
                 elif actionCMD[0] == 'PE':                                  # Pulse Period - Allows you to set the laser's pulse period
-                    if self._pulsePeriodMIN <= float(actionCMD[1]) <= self._pulsePeriodMax:
+                    if self._pulsePeriodMIN <= float(actionCMD[1]) <= self._pulsePeriodMAX:
                         self._pulsePeriod = float(actionCMD[1])
                         self._sendBytes('OK')
                     else:
@@ -376,7 +376,7 @@ class Serial:
         for i in range(n):                  # Going through string character by character
             if len(self._sendData) == 0:    # Break statement
                 break
-            if _sendData[i] == '\n':
+            if self._sendData[i] == '\n':
                 self._sendData = self._sendData[i+1:]
             else:
                 send += self._sendData[i]

@@ -62,9 +62,10 @@ class Laser:
     SINGLE_SHOT = 1
     BURST = 2
 
-    def __init__(self, pulseMode = 0, repRate = 10, burstCount = 10000, diodeCurrent = .1, energyMode = 0, pulseWidth = 10, diodeTrigger = 0):
+    def __init__(self, pulseMode = 0, pulsePeriod = 0, repRate = 10, burstCount = 10000, diodeCurrent = .1, energyMode = 0, pulseWidth = 10, diodeTrigger = 0):
         self._ser = None
         self.pulseMode = pulseMode # NOTE: Pulse mode 0 = continuous is actually implemented as 2 = burst mode in this code.
+        self.pulsePeriod = pulsePeriod
         self.repRate = repRate
         self.burstCount = burstCount
         self.diodeCurrent = diodeCurrent
@@ -80,7 +81,7 @@ class Laser:
         self._device_address = "LA"
         self.connected = False
 
-    def editConstants(self, pulseMode = 0, repRate = 10, burstCount = 10000, diodeCurrent = .1, energyMode = 0, pulseWidth = 10,  diodeTrigger = 0):
+    def editConstants(self, pulseMode = 0, pulsePeriod = 0, repRate = 10, burstCount = 10000, diodeCurrent = .1, energyMode = 0, pulseWidth = 10,  diodeTrigger = 0):
         """
         Update the laser settings
 
@@ -102,6 +103,7 @@ class Laser:
             0 = internal, 1 = external
         """
         self.pulseMode = pulseMode
+        self.pulsePeriod = pulsePeriod
         self.repRate = repRate
         self.burstCount = burstCount
         self.diodeCurrent = diodeCurrent
@@ -144,7 +146,7 @@ class Laser:
         with self._lock: # make sure we're the only ones on the serial line
             self._ser.write(cmd_complete.encode("ascii")) # write the complete command to the serial device
             time.sleep(0.01)
-            response = self._ser.read_until(expected="\r") # laser returns with <CR> = \r Note that this may timeout and return None
+            response = self._ser.read_until("\r") # laser returns with <CR> = \r Note that this may timeout and return None
 
         return response
 
@@ -238,7 +240,7 @@ class Laser:
         """
         response = self._send_command('EN?')
         if response[0] == b"?":
-            raise LaserCommandError(Laser.get_error_command_description(response))
+            raise LaserCommandError(Laser.get_error_code_description(response))
 
         if len(response) == 2:
             return response[1] == b'1'
@@ -285,7 +287,7 @@ class Laser:
         response = self._send_command('FV?')
         if response[0] == b"?":
             raise LaserCommandError(Laser.get_error_code_description(response))
-        return response[:-4]
+        return response[:-4]    #TODO: All responce[:-4] does is returns b'', what is the purpose of this... It should be returning the actual data, something like responce [:-1] would remove the \r and leave just data
 
     def diode_current_check(self):
         """
@@ -302,10 +304,73 @@ class Laser:
             raise LaserCommandError(Laser.get_error_code_description(response))
         return response[:-4]
 
+    def bank_voltage_check(self):
+        """
+        This command requests to see what value the laser's bank voltage is at.
+        
+        Returns
+        -------
+        bank_voltage : float
+            Returns the float value of the laser's bank voltage.
+        """
+        #TODO: May be an int or float, has to be tested. A lot of these aren't specified on the data sheet. Once determined, cast the responce_str properly.
+        #TODO: Also, I thought it'd be easier if we just returned an actual value instead of an ascii encoded string. Go ahead and change this if you'd like.
+        response = self._send_command('BV?')
+        if response[0] == b'?':
+            raise LaserCommandError(Laser.get_error_code_description(response))
+        response_str = str(repr(response[:-1].decode('ascii')))
+        return float(response_str)
+
+    def laser_ID(self):
+        """
+        This command requests to see what the laser's ID value is.
+
+        Returns
+        _______
+        ID : str
+            Returns a string containing the laser's ID information
+        """
+        response = self._send_command('ID?')
+        if response[0] == b'?':
+            raise LaserCommandError(Laser.get_error_code_description(response))
+        response_str = str(repr(response[:-1].decode('ascii')))
+        return response_str
+
+    def latched_status_check(self):
+        """
+        This command requests to see what the laser's latched status is.
+
+        Returns
+        _______
+        latched_status : str
+            Returns a string containing the laser's latched status
+        """
+        #TODO: Not especially sure what this returns
+        response = self._send_command('LS?')
+        if response[0] == b'?':
+            raise LaserCommandError(Laser.get_error_code_description(response))
+        response_str = str(repr(response[:-1].decode('ascii')))
+        return response_str
+
+    def system_shot_count_check(self):
+        """
+        This command requests to see what the laser's system shot count is.
+
+        Returns
+        -------
+        system_SC : int
+            Returns the system shot count since factory build.
+        """
+        response = self._send_command('SC?')
+        if response[0] == b'?':
+            raise LaserCommandError(Laser.get_error_code_description(response))
+        response_str = str(repr(response[:-1].decode('ascii')))
+        return int(response_str)
+
     def emergency_stop(self):
         """Immediately sends command to laser to stop firing"""
         response = self._send_command('FL 0')
-        if reponse == b"OK\r":
+        if response == b"OK\r":
             return True
 
         raise LaserCommandError(Laser.get_error_code_description(response))
@@ -335,6 +400,18 @@ class Laser:
             self.pulseMode = mode
             return True
         raise LaserCommandError(Laser.get_error_code_description(response))
+
+    def set_pulse_period(self, period):
+        """Sets the pulse period for firing."""
+        #TODO: We must find the pulse period MIN and MAX restrictions when we get the laser control box.
+        #TODO: Once found, add these restrictions into the function so we don't send over invalid commands.
+        #TODO: Also, we need to see what the laser's default pulse period is set to.
+        response = self._send_command("PE " + str(period))
+        if response == b"OK\r":
+            self.pulsePeriod = period
+            return True
+        raise LaserCommandError(Laser.get_error_code_description(response))
+
 
     def set_diode_trigger(self, trigger):
         """Sets the diode trigger mode. 0 = Software/internal. 1 = Hardware/external trigger. Returns True on nominal response."""
@@ -408,6 +485,15 @@ class Laser:
             self.energyMode = mode
             return True
         raise LaserCommandError(Laser.get_error_code_description(response))
+
+    def laser_reset(self):
+        """This command resets all laser variables to default. """
+        responce = self._send_command('RS')
+        if responce == b'OK\r':
+            self.editConstants()    # Refreshing all constants back to their default states if response is valid
+            return True
+        raise LaserCommandError(Laser.get_error_code_description(responce))
+
 
     def update_settings(self):
         # cmd format, ignore brackets => ;[Address]:[Command String][Parameters]\r
