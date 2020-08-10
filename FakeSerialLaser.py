@@ -285,12 +285,9 @@ class Serial:
                         self._sendBytes('?8')                       # Command unavailable in current system state
 
                 elif actionCMD[0] == 'FL':                                  # Fire Laser - Allows you to fire and stop firing the laser (0 = stop firing, 1 = fire)
-                    if int(actionCMD[1]) == 1 and self._RTF == '1' and (self._energyMode == 0 or self._energyMode == 2) and self._LE == '1' and self._RTE == '1':
+                    if self._RTF == '1' and (self._energyMode == 0 or self._energyMode == 2) and self._LE == '1' and self._RTE == '1':
                         self._t3.start()
                         self._sendBytes('OK')
-                    elif int(actionCMD[1]) == 0:
-                        self._LA == '0'
-                        self._fireLaser = 0
                     else:
                         self._sendBytes('?8')                       # Command unavailable in current system state
                         
@@ -502,8 +499,6 @@ class Serial:
         self._thermistorTempMAX = 10000000
         self._userShotCount = 0
 
-        self._emergencyStop = False
-
 
         ### System Status Below ###
         # This goes 15 -> 0 byte order (16 bit decimal value)
@@ -543,14 +538,6 @@ class Serial:
         time.sleep(self._pulsePeriod)
         self._fireLaser = 0
         self._LA = '0'
-    """
-    def _emergencyStopChecker(self):
-        start = time.time()
-        period = 0
-        while period < self._pulsePeriod:
-            if self._LA == '0':
-    """
-
 
 
 #---Error Types-----------------------------------------------------------------------------------
