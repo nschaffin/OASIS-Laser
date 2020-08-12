@@ -24,6 +24,7 @@ class Serial:
         self.exclusive = exclusive
         self._isOpen = True
         self._initializeVars()
+        self._systemShotCount = 0
         
     def isOpen(self):
         """ Checks if fake serial port is open"""
@@ -60,7 +61,7 @@ class Serial:
             raise PortError('Port Not Opened')
         
         if type(command) == bytes:
-            commandDecoded = str(repr(command.decode('ascii'))).strip("'")      # Lines 62-66 check that the incoming command is indeed in bytes
+            commandDecoded = str((repr(command.decode('ascii')))).replace("u'", "").replace("'", "")      # Lines 62-66 check that the incoming command is indeed in bytes (The u' was something i had to replace since I was getting an issue on mac?)
             print("Laser recieved command: {}".format(commandDecoded))          # If it's in bytes, we will decode the command in ascii and get the raw representation of the ascii string
         else:
             raise TypeError('{} is not a byte format'.format(type(command)))
@@ -222,8 +223,8 @@ class Serial:
                         self._sendBytes('?5')                       # Invalid parameter
 
                 elif actionCMD[0] == 'DC':                                  # Diode Current - Allows you to edit the laser's diode current
-                    if self._diodeCurrentMIN <= int(actionCMD[1]) <= self._diodeCurrentMAX:
-                        self._diodeCurrent = int(actionCMD[1])
+                    if self._diodeCurrentMIN <= float(actionCMD[1]) <= self._diodeCurrentMAX:
+                        self._diodeCurrent = float(actionCMD[1])
                         self._sendBytes('OK')
                     else:
                         self._sendBytes('?5')                       # Invalid parameter
@@ -462,9 +463,9 @@ class Serial:
         
         These variables are not in the __init__ function since they need to be resetable
         """
-        #self._recievedData = ""
         self._sendData = ''
-        ### Laser Settings ###
+        
+        #---Laser Settings------------------------------------------------
         self._burstCount = 10
         self._bankVoltage = 0
 
@@ -487,7 +488,7 @@ class Serial:
         self._currentMeasurement = 0
         self._latchedStatus = 0
         
-        self._pulsePeriod = 2   # Starting pulse period at arbitrary two seconds
+        self._pulsePeriod = 0
         self._pulsePeriodMIN = 0
         self._pulsePeriodMAX = 3
         self._pulseMODE = 0     # 0 - Continuous, 1 = single shot, 2 = burst
@@ -495,7 +496,6 @@ class Serial:
         self._repititionRate = 1
         self._repititionRateMIN = 1
         self._repititionRateMAX = 5
-        self._systemShotCount = 0
         self._saveSettings = 0
         self._thermistorTemp = 0
         self._thermistorTempMIN = 0
@@ -540,7 +540,14 @@ class Serial:
     def _firingTimer(self):
         self._fireLaser = 1     # This function is meant to serve as a fake, threaded timer for the pulse period set to simulate the laser firing for that time period
         self._LA = '1'
-        time.sleep(self._pulsePeriod)
+        if self._pulseMODE == 0:
+            time.sleep(self._pulsePeriod)                       # Continuous pulsing
+        elif self._pulseMODE == 1:
+            time.sleep(1 / self._repitionRate)                  # Single pulse
+        elif self._pulseMODE == 2:
+            time.sleep(self._burstCount / self._repitionRate)   # Burst pulses
+        self._userShotCount += 1
+        self._systemShotCount += 1
         self._fireLaser = 0
         self._LA = '0'
     """
@@ -550,8 +557,6 @@ class Serial:
         while period < self._pulsePeriod:
             if self._LA == '0':
     """
-
-
 
 #---Error Types-----------------------------------------------------------------------------------
 

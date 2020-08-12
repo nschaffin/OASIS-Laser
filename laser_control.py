@@ -62,12 +62,12 @@ class Laser:
     SINGLE_SHOT = 1
     BURST = 2
 
-    def __init__(self, pulseMode = 0, pulsePeriod = 0, repRate = 10, burstCount = 10000, diodeCurrent = .1, energyMode = 0, pulseWidth = 10, diodeTrigger = 0):
+    def __init__(self, pulseMode = 0, pulsePeriod = 0, repRate = 1, burstCount = 10, diodeCurrent = .1, energyMode = 0, pulseWidth = 10, diodeTrigger = 0):
         self._ser = None
         self.pulseMode = pulseMode # NOTE: Pulse mode 0 = continuous is actually implemented as 2 = burst mode in this code.
         self.pulsePeriod = pulsePeriod
-        self.repRate = repRate
-        self.burstCount = burstCount
+        self.repRate = repRate          # NOTE: The default repitition rate for the laser is 1 Hz not 10 Hz (10 is out of bounds aswell)
+        self.burstCount = burstCount    # NOTE: The default burst count for the laser is 10 not 10000
         self.diodeCurrent = diodeCurrent
         self.energyMode = energyMode
         self.pulseWidth = pulseWidth
@@ -81,7 +81,7 @@ class Laser:
         self._device_address = "LA"
         self.connected = False
 
-    def editConstants(self, pulseMode = 0, pulsePeriod = 0, repRate = 10, burstCount = 10000, diodeCurrent = .1, energyMode = 0, pulseWidth = 10,  diodeTrigger = 0):
+    def editConstants(self, pulseMode = 0, pulsePeriod = 0, repRate = 1, burstCount = 10, diodeCurrent = .1, energyMode = 0, pulseWidth = 10,  diodeTrigger = 0):
         """
         Update the laser settings
 
@@ -203,16 +203,33 @@ class Laser:
         fire_response = self._send_command('FL 1')
         if fire_response != b"OK\r":
             raise LaserCommandError(Laser.get_error_code_description(fire_response))
-        #TODOL Add in command to check status
+        #TODO: Add in command to check status
         status = self.get_status()
-        response = ""
-        if response != '3075\r': # TODO: This seems wrong. Check to make sure that this is the EXACT status string that will be returned during firing
+        if self.energyMode == self.LOW_ENERGY:      # Make sure we are NOT in low energy mode... Laser must either be in high energy or manual to fire
+            raise LaserCommandError("Laser is in Low Energy Mode")
+
+        if not self.check_armed():
+            raise LaserCommandError("Laser not armed")
+
+        if status != '3075' and status != '11267':  # TODO: This seems wrong. Check to make sure that this is the EXACT status string that will be returned during firing
+                                                    # TODO: I believe that the laser on the manual is stuck in manual power mode. Therefore, in specifically high power mode it could also be 11267
             self._send_command('FL 0')  # aborts if laser fails to fire
             raise LaserCommandError('Laser Failed to Fire')
         else:
-            if self.burstDuration >= 2:
-                self._kicker_control = True
-            time.sleep(self.burstDuration)
+            #TODO: Now that I'm viewing this, if we are to call these sleep timers, there is no way to perform an emergency stop while firing. These need threaded or something.
+            if self.pulseMode == 0:
+                time.sleep(self.pulsePeriod)            # Full pulse period
+            elif self.pulseMode == 1:
+                time.sleep(1 / self.repRate)            # Only active for the 1s / repitition rate (pulse width)
+            elif self.pulseMode == 2:
+                # TODO: Add better kicker functionality (allow for it to be stopped instead of running an infinite loop | This should also be threaded as to not hang on an inf loop)
+                if self.burstDuration >= 2:
+                    self._kicker_control = True         # Burst firing
+                    time.sleep(self.burstDuration)      # If duration >= 2, trigger kicker to check status and sleep for duration
+                    self._kicker_control = False
+                else:
+                    time.sleep(self.burstDuration)      # Just sleep for duration otherwise
+
             self._send_command('FL 0')
 
     def get_status(self): # TODO: Make this return useful values to the user. The user should not have to parse out the information encoded in the string you return.
@@ -224,11 +241,12 @@ class Laser:
                 Returns a LaserStatusResponse object created from the SS? command's response that is received.
         """
         response = self._send_command('SS?')
+        response = str(response[:-1].decode('ascii'))
 
-        if len(response) < 5 or response[0] == "?": # Check to see if we got an error instead
+        if response[0] == "?": # Check to see if we got an error instead. NOTE: This originally had len(response) < 5, but I don't see the purpose of this and it causes errors.
             raise LaserCommandError(Laser.get_error_code_description(response))
         else:
-            return LaserStatusResponse(response)
+            return LaserStatusResponse(response).__str__()
 
     def check_armed(self):
         """
@@ -239,11 +257,11 @@ class Laser:
             the lasr is armed
         """
         response = self._send_command('EN?')
-        if response[0] == b"?":
+        if response[:-1] == b"?":
             raise LaserCommandError(Laser.get_error_code_description(response))
 
         if len(response) == 2:
-            return response[1] == b'1'
+            return response[:-1] == b'1'
 
     def fet_temp_check(self):
         """
@@ -318,10 +336,10 @@ class Laser:
         response = self._send_command('BV?')
         if response[0] == b'?':
             raise LaserCommandError(Laser.get_error_code_description(response))
-        response_str = str(repr(response[:-1].decode('ascii')))
+        response_str = response[:-1].decode('ascii')
         return float(response_str)
 
-    def laser_ID(self):
+    def laser_ID_check(self):
         """
         This command requests to see what the laser's ID value is.
 
@@ -333,7 +351,7 @@ class Laser:
         response = self._send_command('ID?')
         if response[0] == b'?':
             raise LaserCommandError(Laser.get_error_code_description(response))
-        response_str = str(repr(response[:-1].decode('ascii')))
+        response_str = str(response[:-1].decode('ascii'))
         return response_str
 
     def latched_status_check(self):
@@ -349,7 +367,7 @@ class Laser:
         response = self._send_command('LS?')
         if response[0] == b'?':
             raise LaserCommandError(Laser.get_error_code_description(response))
-        response_str = str(repr(response[:-1].decode('ascii')))
+        response_str = str(response[:-1].decode('ascii'))
         return response_str
 
     def system_shot_count_check(self):
@@ -364,7 +382,7 @@ class Laser:
         response = self._send_command('SC?')
         if response[0] == b'?':
             raise LaserCommandError(Laser.get_error_code_description(response))
-        response_str = str(repr(response[:-1].decode('ascii')))
+        response_str = str(response[:-1].decode('ascii'))
         return int(response_str)
 
     def emergency_stop(self):
@@ -372,7 +390,6 @@ class Laser:
         response = self._send_command('FL 0')
         if response == b"OK\r":
             return True
-
         raise LaserCommandError(Laser.get_error_code_description(response))
 
     def arm(self):
@@ -408,7 +425,7 @@ class Laser:
         #TODO: Also, we need to see what the laser's default pulse period is set to.
         response = self._send_command("PE " + str(period))
         if response == b"OK\r":
-            self.pulsePeriod = period
+            self.pulsePeriod = float(period)
             return True
         raise LaserCommandError(Laser.get_error_code_description(response))
 
@@ -450,8 +467,8 @@ class Laser:
         raise LaserCommandError(Laser.get_error_code_description(response))
 
     def set_rep_rate(self, rate):
-        """Sets the repetition rate of the laser. Rate must be a positive integer from 1 to 5. Returns True on nominal response, False otherwise."""
-        if not type(count) == int or rate < 1 or rate > 5:
+        """Sets the repetition rate of the laser. Rate must be a positive integer from 1 to 5 (# of Hz allowed). Returns True on nominal response, False otherwise."""
+        if not type(rate) == int or rate < 1 or rate > 5:
             raise ValueError("Laser repetition rate must be a positive integer from 1 to 5!")
 
         response = self._send_command("RR " + str(rate))
