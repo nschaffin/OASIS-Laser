@@ -246,7 +246,7 @@ class Laser:
         if response[0] == "?": # Check to see if we got an error instead. NOTE: This originally had len(response) < 5, but I don't see the purpose of this and it causes errors.
             raise LaserCommandError(Laser.get_error_code_description(response))
         else:
-            return LaserStatusResponse(response).__str__()
+            return LaserStatusResponse(response)
 
     def check_armed(self):
         """
