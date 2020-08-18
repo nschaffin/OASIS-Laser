@@ -55,6 +55,11 @@ class Serial:
 
         There will be a comment listed around every significant line or lines of code.
         This comment will give a basic understaning of what is occuring in the code, and what laser values the line(s) are modifying.
+
+        Parameters
+        ----------
+        command : bytes
+            This is an ascii encoded string containing the command you would like to send to the laser
         """
         # Here I need to implement all of the stuff
         if self._isOpen == False:                                               # You don't have to open the port anymore
@@ -175,14 +180,14 @@ class Serial:
                 elif queryCMD == 'RC':                                      # Recall Settings - Returns settings from user bin 1-6. 0 = recall factory defaults
                     self._sendBytes(str(self._recallSettings))
 
-                elif queryCMD == 'RR':                                      # Repitition Rate - Returns the current repitition rate (default = 1 Hz)
-                    self._sendBytes(str(self._repititionRate))
+                elif queryCMD == 'RR':                                      # repetition Rate - Returns the current repetition rate (default = 1 Hz)
+                    self._sendBytes(str(self._repetitionRate))
 
-                elif queryCMD == 'RR:MIN':                                  # Repitition Rate Min - Returns minimum allowed repitition rate (1 Hz)
-                    self._sendBytes(str(self._repititionRateMIN))
+                elif queryCMD == 'RR:MIN':                                  # repetition Rate Min - Returns minimum allowed repetition rate (1 Hz)
+                    self._sendBytes(str(self._repetitionRateMIN))
 
-                elif queryCMD == 'RR:MAX':                                  # Repitition Rate Max - Returns maximum allowed repititon rate (5 Hz)
-                    self._sendBytes(str(self._repititionRateMAX))
+                elif queryCMD == 'RR:MAX':                                  # repetition Rate Max - Returns maximum allowed repititon rate (5 Hz)
+                    self._sendBytes(str(self._repetitionRateMAX))
 
                 elif queryCMD == 'SC':                                      # System Shot Count - Returns the number of shots stored on the system since factory build
                     self._sendBytes(str(self._systemShotCount))
@@ -271,8 +276,12 @@ class Serial:
 
                 elif actionCMD[0] == 'EN':                                  # Enable - Allows you to arm and disarm laser (0 = disarm/disable, 1 = arm/enable)
                     if self._RTE == '1' and actionCMD[1] == '1':
-                        self._t2.start()
-                        self._sendBytes('OK')
+                        if self._arming or self._enable == 1:
+                            self._sendBytes('?8')
+                        else:
+                            self._t2 = threading.Thread(target=self._armingTimer)
+                            self._t2.start()
+                            self._sendBytes('OK')
                     elif self._RTE == '0' and actionCMD[1] == '1':
                         self._sendBytes('?8')                       # Command unavailable in current system state
                     elif actionCMD[1] == '0' and self._enable == 1:
@@ -287,11 +296,19 @@ class Serial:
 
                 elif actionCMD[0] == 'FL':                                  # Fire Laser - Allows you to fire and stop firing the laser (0 = stop firing, 1 = fire)
                     if int(actionCMD[1]) == 1 and self._RTF == '1' and (self._energyMode == 0 or self._energyMode == 2) and self._LE == '1' and self._RTE == '1':
-                        self._t3.start()
-                        self._sendBytes('OK')
+                        if self._firing:
+                            self._sendBytes('?8')
+                        else:
+                            self._t3 = threading.Thread(target=self._firingTimer)
+                            self._t3.start()
+                            self._sendBytes('OK')
                     elif int(actionCMD[1]) == 0:
-                        self._LA == '0'
-                        self._fireLaser = 0
+                        if self._LA == '0':
+                            self._sendBytes('?8')
+                        else:
+                            self._LA = '0'
+                            self._fireLaser = 0
+                            self._sendBytes('OK')
                     else:
                         self._sendBytes('?8')                       # Command unavailable in current system state
                         
@@ -316,9 +333,9 @@ class Serial:
                     else:
                         self._sendBytes('?5')                       # Invalid parameter
 
-                elif actionCMD[0] == 'RR':                                  # Repitition Rate - Allows for changing the repitition rate (defaults to 1 Hz)
-                    if self._repititionRateMIN <= int(actionCMD[1]) <= self._repititionRateMAX:
-                        self._repitionRate = float(actionCMD[1])
+                elif actionCMD[0] == 'RR':                                  # repetition Rate - Allows for changing the repetition rate (defaults to 1 Hz)
+                    if self._repetitionRateMIN <= int(actionCMD[1]) <= self._repetitionRateMAX:
+                        self._repetitionRate = float(actionCMD[1])
                         self._sendBytes('OK')
                     else:
                         self._sendBytes('?5')                       # Invalid parameter
@@ -365,7 +382,18 @@ class Serial:
 
 
     def read(self, n=1):                    # Needs fixed so it doesn't send \n
-        """ This function mocks the pyserial read() function, it takes in the number of bytes that you would like to recieve """
+        """ This function mocks the pyserial read() function, it takes in the number of bytes that you would like to recieve 
+        
+        Parameters
+        ----------
+        n : int
+            The number of bytes you would like to read
+
+        Returns
+        -------
+        response : bytes
+            Encodes a responce string in ascii.
+        """
         if self._sendData == '':            # Check if send data is empty
             return None
         
@@ -386,7 +414,13 @@ class Serial:
 
 
     def readline(self):                 
-        """This function mocks the pyserial readline() fucntion. It reads a singular line of sendData """
+        """This function mocks the pyserial readline() fucntion. It reads a singular line of sendData 
+        
+        Returns
+        -------
+        response : bytes
+            Encodes a responce string in ascii.
+        """
         if self._sendData == '':
             return None
         elif self._sendData == '\n':
@@ -401,7 +435,18 @@ class Serial:
 
 
     def read_until(self, expected):
-        """ This function mocks the pyserial read_until() function. It teads until the provided character is found (until that character's index value) """
+        """ This function mocks the pyserial read_until() function. It teads until the provided character is found (until that character's index value)
+        
+        Parameters
+        ----------
+        expected : str
+            The expected string you would like to read until
+
+        Returns
+        -------
+        response : bytes
+            Encodes a responce string in ascii.
+        """
         if self._sendData == '':
             return None
         elif self._sendData == '\n':
@@ -427,7 +472,13 @@ class Serial:
 
 
     def _sendBytes(self, sendValue):
-        """Formats a string into sendData string"""
+        """Formats a string into sendData string
+        
+        Parameters
+        ----------
+        sendValue : str
+            Puts the response values into the send data string
+        """
         self._sendData += '{}\r\n'.format(str(sendValue))   # Places the carriage return along with a newline that I'm using to split off commands (newline's kinda unnecessary but I'm using it anyways )
         return None
 
@@ -437,6 +488,11 @@ class Serial:
         """
         This grabs all system status values and converts them into a 16 bit decimal.
         Putting all status bits into 16 bit string.
+
+        Returns
+        -------
+        decimal : int
+            Returns the decimal value of the ascii encoded string
         """
         SixteenBit = list(self._spare + self._spare + self._HPM + self._LPM + self._RTF + self._RTE + self._PF + self._EOT + self._ROT + self._EI + self._reserved + self._reserved + self._DET + self._reserved + self._LA + self._LE)
         power = 0
@@ -493,9 +549,9 @@ class Serial:
         self._pulsePeriodMAX = 3
         self._pulseMODE = 0     # 0 - Continuous, 1 = single shot, 2 = burst
         self._recallSettings = 0
-        self._repititionRate = 1
-        self._repititionRateMIN = 1
-        self._repititionRateMAX = 5
+        self._repetitionRate = 1
+        self._repetitionRateMIN = 1
+        self._repetitionRateMAX = 5
         self._saveSettings = 0
         self._thermistorTemp = 0
         self._thermistorTempMIN = 0
@@ -503,6 +559,8 @@ class Serial:
         self._userShotCount = 0
 
         self._emergencyStop = False
+        self._arming = False
+        self._firing = False
 
 
         ### System Status Below ###
@@ -523,40 +581,44 @@ class Serial:
         self._LE = '0'          # Laser Enabled
 
         ### Timer Threads ###
-        self._t1 = threading.Thread(target=self._warmupTimer)       # Warmup timer thread
-        self._t2 = threading.Thread(target=self._armingTimer)       # Arm timer thread
-        self._t3 = threading.Thread(target=self._firingTimer)       # Laser Fire timer thread
+        #self._t1 = threading.Thread(target=self._warmupTimer)       # Warmup timer thread
+        #self._t2 = threading.Thread(target=self._armingTimer)       # Arm timer thread
+        #self._t3 = threading.Thread(target=self._firingTimer)       # Laser Fire timer thread
 
     ### Threaded Timers ###
     def _warmupTimer(self):
+        """NOTE: Not used"""
         time.sleep(10)          # This function is unused unless I find a way to simulate the warmup period
 
     def _armingTimer(self):
+        """
+        Simulates the time it takes to arm the laser
+        """
+        self._arming = True
         time.sleep(8)           # This function is meant to serve as a fake, threaded timer for 8 seconds which is the amount of time it takes for the laser to arm
         self._enable = 1
         self._LE = '1'
         self._RTF = '1'
+        self._arming = False
 
     def _firingTimer(self):
+        """
+        Simulates the time it takes to fire the laser depending on the pulse mode
+        """
+        self._firing = True
         self._fireLaser = 1     # This function is meant to serve as a fake, threaded timer for the pulse period set to simulate the laser firing for that time period
         self._LA = '1'
         if self._pulseMODE == 0:
             time.sleep(self._pulsePeriod)                       # Continuous pulsing
         elif self._pulseMODE == 1:
-            time.sleep(1 / self._repitionRate)                  # Single pulse
+            time.sleep(1 / self._repetitionRate)                  # Single pulse
         elif self._pulseMODE == 2:
-            time.sleep(self._burstCount / self._repitionRate)   # Burst pulses
+            time.sleep(self._burstCount / self._repetitionRate)   # Burst pulses
         self._userShotCount += 1
         self._systemShotCount += 1
         self._fireLaser = 0
         self._LA = '0'
-    """
-    def _emergencyStopChecker(self):
-        start = time.time()
-        period = 0
-        while period < self._pulsePeriod:
-            if self._LA == '0':
-    """
+        self._firing = False
 
 #---Error Types-----------------------------------------------------------------------------------
 
