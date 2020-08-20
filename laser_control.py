@@ -279,15 +279,17 @@ class Laser:
             Returns True for valid action command. Raises an error otherwise.
         """
         if action == 0 and self._kicker_active == False:
-            self.kicker_thread = thread.Thread(target=self._kicker)
-            self._threads.append(self.kicker_thread)
-            self.kicker_thread.start()
             self._kicker_active = True
+            self.kicker_thread = thread.Thread(target=self._kicker)
+            self.kicker_thread.start()
+            self._threads.append(self.kicker_thread)
             return True
 
         elif action == 1 and self._kicker_active == True:
             self._kicker_active = False
             self.kicker_thread.join()
+            if self.kicker_thread in self._threads:
+                self._threads.pop(self._threads.index(self.kicker_thread))
             return True
         
         elif action != 0 or action != 1:
