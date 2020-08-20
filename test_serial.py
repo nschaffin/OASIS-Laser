@@ -15,6 +15,8 @@ class TestSerial(unittest.TestCase):
     Laser control is setup as an object called: self.controller
 
     I hope the names of these functions explain what they're doing, but if some are unclear please lmk and I'll update this with documentation.
+
+    NOTE: Please just bear in mind that the test takes about 75 seconds to run due to all the arming and firing commands. Feel free to uncomment the unittest skips to focus on only one or a few tests.
     """
     def setUp(self):
         self._ser = fake_serial.Serial('COM1', 9600)
@@ -35,7 +37,11 @@ class TestSerial(unittest.TestCase):
     
     #@unittest.skip('skip')
     def test_query(self):                                   ### For System Query Commands ###
-        """ NOTE: These tests do NOT include all variables, just commonly used ones for testing purposes """
+        """ 
+        This test function serves the purpose of testing our query commands.
+        
+        NOTE: These tests do NOT include all variables, just commonly used ones for testing purposes 
+        """
         self._ser.write(b';LA:SS?\r')
         self.assertEqual(self._ser.readline(), b'1024\r')
 
@@ -62,7 +68,11 @@ class TestSerial(unittest.TestCase):
 
     #@unittest.skip("I don't know")
     def test_actions(self):                                 ### For System Action Commands and Editing Values ###
-        """ NOTE: These tests do NOT include all variables, just commonly used ones for testing purposes """
+        """ 
+        This test function serves the purpose of testing our action commands.
+
+        NOTE: These tests do NOT include all variables, just commonly used ones for testing purposes
+        """
         self._ser.write(b';LA:SS?\r')
         control = self._ser.readline()                       # This is a control var
         self.assertEqual(control, b'1024\r')
@@ -99,11 +109,17 @@ class TestSerial(unittest.TestCase):
 
     #@unittest.skip('skip')
     def test_reset(self):
+        """
+        This test function serves the purpose of testing our reset command.
+        """
         self._ser.write(b';LA:RS\r')
         self.assertEqual(self._ser.readline(), b'OK\r')
 
     #@unittest.skip('skip')
     def test_errors(self):
+        """
+        This test function 
+        """
         with self.assertRaises(TypeError):
             self._ser.write(';LA:SS?\r')
 
@@ -127,12 +143,18 @@ class TestSerial(unittest.TestCase):
 
     #@unittest.skip('skip')
     def test_send_command(self):
+        """
+        This tests our send command function to make sure it sends and recieves properly ascii encoded strings.
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
         self.assertEqual(self.controller._send_command('SS?'), b'1024\r')
 
     #@unittest.skip("Arm/Disarm Function Contain Bugs")
     def test_arm(self):
+        """
+        This function checks that our arm function works properly.
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
         self.assertEqual(self.controller.arm(), True)
@@ -142,7 +164,7 @@ class TestSerial(unittest.TestCase):
     #@unittest.skip("Comparing to empty string")
     def test_fire(self):
         """
-        This function serves to check that fire laser is being called correctly
+        This test function serves to check that fire laser is being called correctly
         """
 
         self.controller.connected = True
@@ -163,6 +185,11 @@ class TestSerial(unittest.TestCase):
     
     #@unittest.skip("Newly revised get status")
     def test_get_status(self):
+        """
+        This tests if our get status function is working properly
+
+        If someone would like, it would probably be for the best to add a self.__repr__() = self.__str__() in the get status class so we don't have to call the string method
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
 
@@ -170,6 +197,9 @@ class TestSerial(unittest.TestCase):
 
     #@unittest.skip("b'' ")
     def test_fet_temp(self):
+        """
+        Tests that our check fet temp function returns the proper values
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
 
@@ -177,6 +207,9 @@ class TestSerial(unittest.TestCase):
 
     #@unittest.skip("b'' ")
     def test_resonator_temp(self):
+        """
+        Tests that our check resonator temp function returns the proper values
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
 
@@ -184,6 +217,9 @@ class TestSerial(unittest.TestCase):
 
     #@unittest.skip("b'' ")
     def test_fet_volatage(self):
+        """
+        Tests that our check fet voltage function returns the proper values
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
 
@@ -191,6 +227,9 @@ class TestSerial(unittest.TestCase):
 
     #@unittest.skip("b'' ")
     def test_diode_current(self):
+        """
+        Tests that our check diode current function returns the proper values
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
 
@@ -198,6 +237,9 @@ class TestSerial(unittest.TestCase):
     
     #@unittest.skip("Something is not working with emergency stop")
     def test_emergency_stop(self):
+        """
+        Tests that our emergency stop function stops the laser from firing
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
 
@@ -215,6 +257,9 @@ class TestSerial(unittest.TestCase):
     
     #@unittest.skip('skip')
     def test_set_pulseMode(self):
+        """
+        Tests that our set pulse mode function returns the proper values
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
 
@@ -222,6 +267,9 @@ class TestSerial(unittest.TestCase):
 
     #@unittest.skip('skip')
     def test_set_diodeTrigger(self):
+        """
+        Tests that our set diode trigger function returns the proper values
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
 
@@ -229,6 +277,9 @@ class TestSerial(unittest.TestCase):
 
     #@unittest.skip('skip')
     def test_bank_voltage_check(self):
+        """
+        Tests that our check bank voltage function returns the proper values
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
 
@@ -236,6 +287,9 @@ class TestSerial(unittest.TestCase):
 
     #@unittest.skip('skip')
     def test_controller_reset(self):
+        """
+        Tests that our controller reset function will put all class variables reliant on the laser back to their original states
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
 
@@ -251,6 +305,9 @@ class TestSerial(unittest.TestCase):
 
     #@unittest.skip('skip')
     def test_ID(self):
+        """
+        Tests that our check laser ID function returns the proper values
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
 
@@ -259,6 +316,9 @@ class TestSerial(unittest.TestCase):
 
     #@unittest.skip('skip')
     def test_latched_check(self):
+        """
+        Tests that our check latched status function returns the proper values
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
 
@@ -267,6 +327,9 @@ class TestSerial(unittest.TestCase):
 
     #@unittest.skip('skip')
     def test_pulse_period(self):
+        """
+        Tests that our set pulse period function returns the proper values
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
 
@@ -282,6 +345,9 @@ class TestSerial(unittest.TestCase):
 
     #@unittest.skip("On hold till laser_fire is fixed")
     def test_sys_shot_count(self):
+        """
+        Tests that our check system shot count function returns the proper values
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
         self.controller._ser._systemShotCount = 0
@@ -296,7 +362,11 @@ class TestSerial(unittest.TestCase):
 
     #@unittest.skip('skip')
     def test_burst(self):
-        """ This also tests a > 2s burst duration """
+        """
+        Tests our burst laser function not only fires for the burst duration set with our burst count and repitition rate, but that our kicker also works with it.
+        
+        This also tests a > 2s burst duration
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
         self.controller._kicker_thread_control(0)
@@ -330,6 +400,11 @@ class TestSerial(unittest.TestCase):
 
     #@unittest.skip('skip')
     def test_kicker_control(self):
+        """
+        This tests the creation and termination of a kicker thread for our firing WDT
+
+        I believe that eventually we should make a WDT to constantly check connection to the laser in another thread (but have it terminate whenever a fire thread starts then recreate the thread after the fire thread)
+        """
         self.controller.connected = True
         self.controller._ser = fake_serial.Serial()
 

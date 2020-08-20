@@ -739,6 +739,9 @@ class Laser:
 
     @staticmethod
     def get_error_code_description(code):
+        """
+        A function used to understand what the incoming error from our laser represents
+        """
         if code == b'?1':
             return "Command not recognized."
         elif code == b'?2':
