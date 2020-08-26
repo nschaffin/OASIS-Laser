@@ -3,6 +3,8 @@ import serial.tools.list_ports
 import time
 import threading as thread
 
+from repeated_timer import RepeatedTimer
+
 class LaserCommandError(Exception):
     pass
 
@@ -128,8 +130,8 @@ class Laser:
         self._kicker_status = None
         self.update_settings()
 
-    def _kicker(self):  # queries for status every second in order to kick the laser's WDT on shots >= 2s
-        """Queries for status every second in order to kick the laser's WDT on shots >= 2s"""
+    def _kicker(self):  # queries for status every second in order to kick the laser's communications safety timeout on shots >= 3s
+        """Queries for status every second in order to kick the laser's communications safety timeout on shots >= 3s"""
         while True:
             if self._kicker_active == False:                             # If kicker thread needs to be terminated, this will exit the thread
                 break
@@ -138,7 +140,6 @@ class Laser:
             else:
                 self._kicker_status = None                                  # Don't keep old kicker values
             time.sleep(.5)
-
 
     def fire_thread(self):
         """This thread handles time keeping for how long the laser takes to fire"""
@@ -302,16 +303,18 @@ class Laser:
         """
             Sends commands to laser to have it fire
         """
+        if not status.laser_enabled:
+            raise LaserCommandError("Laser not armed!")
+            
+        if not status.ready_to_fire:
+            raise LaserCommandError("Laser not ready to fire!")
+
         fire_response = self._send_command('FL 1')
         if fire_response != b"OK\r":
+            self._send_command('FL 0') # aborts if laser fails to fire
             raise LaserCommandError(Laser.get_error_code_description(fire_response))
-        #TODO: Add in command to check status
-        status = self.get_status()
-        if self.energyMode == self.LOW_ENERGY:      # Make sure we are NOT in low energy mode... Laser must either be in high energy or manual to fire
-            raise LaserCommandError("Laser is in Low Energy Mode")
 
-        if not self.check_armed():
-            raise LaserCommandError("Laser not armed")
+        status = self.get_status()
 
         # TODO: Understand how 
         if status.__str__() != '3075' and status.__str__() != '11267':  # TODO: This seems wrong. Check to make sure that this is the EXACT status string that will be returned during firing
@@ -325,10 +328,10 @@ class Laser:
             
             self._threads.append(self.fireThread)
 
-    def get_status(self): # TODO: Make this return useful values to the user. The user should not have to parse out the information encoded in the string you return.
+    def get_status(self):
         """
         Obtains the status of the laser
-        
+
         Returns
         -------
         status : LaserStatusResponse object
