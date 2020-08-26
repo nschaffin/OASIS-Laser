@@ -59,7 +59,9 @@ class TestLaserCommands(unittest.TestCase):
 
         # Now check the arm command
         assert l.arm() == True
-        serial_mock.write.assert_called_once_with(";LA:EN 1\r".encode("ascii"))
+        
+        serial_mock.write.assert_any_call(";LA:EN?\r".encode("ascii"))
+        serial_mock.write.assert_any_call(";LA:EN 1\r".encode("ascii"))
 
     def test_disarm_command(self):
         """Tests Laser.disarm(), should return True because we are feeding it a nominal response, and this should result in serial.write being called with the correct command"""
