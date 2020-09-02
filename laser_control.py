@@ -231,8 +231,8 @@ class Laser:
 
         """
         with self._lock:
-            if port_number not in serial.tools.list_ports.comports():
-                raise ValueError(f"Error: port {port_number} is not available")
+            #if port_number not in serial.tools.list_ports.comports():
+            #    raise ValueError(f"Error: port {port_number} is not available")
             self._ser = serial.Serial(port=port_number)
             if baud_rate and isinstance(baud_rate, int):
                 self._ser.baudrate = baud_rate
@@ -254,6 +254,8 @@ class Laser:
                 self._ser.parity = serial.PARITY_SPACE
             else:
                 raise ValueError("Error: parity must be None, \'none\', \'even\', \'odd\', \'mark\', \'space\'")
+            
+            self.connected = True            
             
             if refresh == True:
                 self.laser_refresh()
@@ -351,14 +353,13 @@ class Laser:
         Returns
         -------
         armed : boolean
-            the laser is armed
+            True if the laser is armed. False if the laser is not armed.
         """
         response = self._send_command('EN?')
         if response[:-1] == b"?":
             raise LaserCommandError(Laser.get_error_code_description(response))
 
-        if len(response) == 2:
-            return response[:-1] == b'1'
+        return response[0] == b'1' # This has been tested on the driver box
 
     def fet_temp_check(self):
         """
@@ -366,13 +367,13 @@ class Laser:
 
         Returns
         -------
-        fet : bytes
-            Returns the float value of the FET temperature in bytes string.
+        fet : float
+            Returns the float value of the FET temperature in Celsius.
         """
         response = self._send_command('FT?')
         if response[0] == b"?":
             raise LaserCommandError(Laser.get_error_code_description(response))
-        return str(response[:-1].decode('ascii'))
+        return float(response[:-1].decode('ascii'))
 
     def resonator_temp_check(self):
         """
@@ -380,14 +381,13 @@ class Laser:
 
         Returns
         -------
-        resonator_temp : bytes
-            Returns the float value of the resonator temperature in bytes string.
+        resonator_temp : float
+            Returns the float value of the resonator temperature in Celsius.
         """
-        #TODO: Determine if this is a float or an integer value and return the appropriate data type.
         response = self._send_command('TR?')
         if response[0] == b"?":
             raise LaserCommandError(Laser.get_error_code_description(response))
-        return str(response[:-1].decode('ascii'))
+        return float(response.decode('ascii'))
 
     def fet_voltage_check(self):
         """
@@ -395,14 +395,13 @@ class Laser:
 
         Returns
         -------
-        fet_voltage : bytes
-            Returns the float value of the FET voltage in bytes string.
+        fet_voltage : float
+            Returns the float value of the FET voltage
         """
-        #TODO: Determine through testing if this is a float or an integer and perform the appropriate cast before returning.
         response = self._send_command('FV?')
         if response[0] == b"?":
             raise LaserCommandError(Laser.get_error_code_description(response))
-        return str(response[:-1].decode('ascii'))    #TODO: All responce[:-4] does is returns b'', what is the purpose of this... It should be returning the actual data, something like responce [:-1] would remove the \r and leave just data
+        return float(response.decode('ascii'))    #TODO: All responce[:-4] does is returns b'', what is the purpose of this... It should be returning the actual data, something like responce [:-1] would remove the \r and leave just data
 
     def diode_current_check(self):
         """
@@ -410,14 +409,13 @@ class Laser:
 
         Returns
         -------
-        diode_current : bytes
-            Returns the float value of the diode current in bytes string.
+        diode_current : float
+            Returns the float value of the diode current
         """
-        #TODO: Determine via testing if this is a float value or integer value, and perform the appropriate cast before returning.
         response = self._send_command('IM?')
         if response[0] == b"?":
             raise LaserCommandError(Laser.get_error_code_description(response))
-        return str(response[:-1].decode('ascii'))
+        return float(response.decode('ascii'))
 
     def bank_voltage_check(self):
         """
@@ -428,12 +426,10 @@ class Laser:
         bank_voltage : float
             Returns the float value of the laser's bank voltage.
         """
-        #TODO: May be an int or float, has to be tested. A lot of these aren't specified on the data sheet. Once determined, cast the responce_str properly.
-        #TODO: Also, I thought it'd be easier if we just returned an actual value instead of an ascii encoded string. Go ahead and change this if you'd like.
         response = self._send_command('BV?')
         if response[0] == b'?':
             raise LaserCommandError(Laser.get_error_code_description(response))
-        response_str = response[:-1].decode('ascii')
+        response_str = response.decode('ascii')
         return float(response_str)
 
     def laser_ID_check(self):
@@ -460,7 +456,7 @@ class Laser:
         latched_status : str
             Returns a string containing the laser's latched status
         """
-        #TODO: Not especially sure what this returns
+        #TODO: Not especially sure what this returns. Returns b'0\r' when the remote interlock is in, and returns b'64\r' when the remote interlock is out.
         response = self._send_command('LS?')
         if response[0] == b'?':
             raise LaserCommandError(Laser.get_error_code_description(response))
@@ -479,7 +475,7 @@ class Laser:
         response = self._send_command('SC?')
         if response[0] == b'?':
             raise LaserCommandError(Laser.get_error_code_description(response))
-        response_str = str(response[:-1].decode('ascii'))
+        response_str = str(response.decode('ascii'))
         return int(response_str)
 
     def emergency_stop(self):
