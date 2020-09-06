@@ -3,7 +3,7 @@ import serial.tools.list_ports
 import time
 import threading as thread
 
-from repeated_timer import RepeatedTimer
+from .repeated_timer import RepeatedTimer
 
 class LaserCommandError(Exception):
     pass
