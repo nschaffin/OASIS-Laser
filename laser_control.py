@@ -564,7 +564,6 @@ class Laser:
             return True
         raise LaserCommandError(Laser.get_error_code_description(response))
 
-
     def set_diode_trigger(self, trigger):
         """Sets the diode trigger mode. 0 = Software/internal. 1 = Hardware/external trigger. Returns True on nominal response.
         
