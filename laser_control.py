@@ -563,6 +563,26 @@ class Laser:
             self.pulsePeriod = float(period)
             return True
         raise LaserCommandError(Laser.get_error_code_description(response))
+        
+    def get_pulse_period_range(self):
+        """Returns the min and max periods for firing.
+        
+        Returns
+        -------
+        range : tuple
+            Item at index 0 is the minimum period, and item at index 1 is the maximum period.
+        """
+        min_response = self._send_command("PE:MIN?")
+        if min_response[0] == b"?":
+            raise LaserCommandError(Laser.get_error_code_description(min_response))
+        minimum = float(min_response)
+
+        max_response = self._send_command("PE:MAX?")
+        if max_response[0] == b"?":
+            raise LaserCommandError(Laser.get_error_code_description(max_response))
+        maximum = float(max_response)
+            
+        return (minimum, maximum)
 
     def set_diode_trigger(self, trigger):
         """Sets the diode trigger mode. 0 = Software/internal. 1 = Hardware/external trigger. Returns True on nominal response.
