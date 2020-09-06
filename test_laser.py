@@ -174,6 +174,25 @@ class TestLaserCommands(unittest.TestCase):
         assert maximum == test_range[1]
         serial_mock.write.assert_any_call(";LA:PE:MIN?\r".encode("ascii"))
         serial_mock.write.assert_any_call(";LA:PE:MAX?\r".encode("ascii"))
+        
+    def test_get_repetition_rate_range(self):
+        """Tests Laser.get_pulse_period_range"""
+        serial_mock = Mock()
+        
+        serial_mock.read_until = Mock()
+        test_range = [1.0, 5.0]
+        serial_mock.read_until.side_effect = [str(test_range[0]).encode("ascii"), str(test_range[1]).encode("ascii")]
+        serial_mock.write = Mock()
+
+        l = Laser()
+        l._ser = serial_mock
+        l.connected = True
+        
+        minimum, maximum = l.get_repetition_rate_range()
+        assert minimum == test_range[0]
+        assert maximum == test_range[1]
+        serial_mock.write.assert_any_call(";LA:RR:MIN?\r".encode("ascii"))
+        serial_mock.write.assert_any_call(";LA:RR:MAX?\r".encode("ascii"))
 
     def test_pulse_width_command(self):
         """Tests Laser.set_pulse_width, feeds in a mock serial object. Makes sure that the correct data is written and that the properties of the class are changed."""

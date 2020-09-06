@@ -677,6 +677,26 @@ class Laser:
             return True
         raise LaserCommandError(Laser.get_error_code_description(response))
 
+    def get_repetition_rate_range(self):
+        """Gets the minimum and maximum repitition rate for firing.
+        
+        Returns
+        -------
+        range : tuple
+            Item at index 0 is the minimum repitition rate, and item at index 1 is the maximum repitition rate.
+        """
+        min_response = self._send_command("RR:MIN?")
+        if min_response[0] == b"?":
+            raise LaserCommandError(Laser.get_error_code_description(min_response))
+        minimum = float(min_response)
+
+        max_response = self._send_command("RR:MAX?")
+        if max_response[0] == b"?":
+            raise LaserCommandError(Laser.get_error_code_description(max_response))
+        maximum = float(max_response)
+            
+        return (minimum, maximum)
+
     def set_diode_current(self, current):
         """Sets the diode current of the laser. Must be a positive non-zero integer (maybe even a float?). Returns True on nominal response, False otherwise.
         
