@@ -1,6 +1,13 @@
 # OASIS Laser
-This code is meant to control a MicroJewel laser using the USB serial interface for the Oasis LIBS.
-This is meant to be imported as a spoof of the pyserial library. This allows for basic testing of the Quantum Composer's MicroJewel Laser.
+This code is meant to control a MicroJewel laser using the USB serial interface.
 
-###
-Please run this on Python 3.7
+# Requirements
+This code has been tested on Python 3.7, however Python 3.5 may work as well.
+The only other external library required is the `pyserial` library, which can be installed by running:
+`pip install -r requirements.txt`
+
+# Installation
+To install `ujlaser` onto your system:
+- Git clone the repository
+- `cd` into the directory
+- Run `pip install .`
