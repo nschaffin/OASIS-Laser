@@ -375,7 +375,7 @@ class Laser:
         else:
             return LaserStatusResponse(response)
 
-    def get_armed_status(self):
+    def is_armed(self):
         """
         Checks if the laser is armed
         Returns
@@ -530,7 +530,7 @@ class Laser:
         valid : bool
             If the command sent to the laser was processed properly, this should show as True. Otherwise an error will be raised.
         """
-        if self.get_armed_status():
+        if self.is_armed():
             raise LaserCommandError("Laser already armed")
         response = self._send_command('EN 1')
         if response == b"OK\r":

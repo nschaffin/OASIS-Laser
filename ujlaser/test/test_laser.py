@@ -10,7 +10,7 @@ class TestLaserCommands(unittest.TestCase):
         assert l.connected == False
         assert l._ser == None
         with self.assertRaises(ConnectionError):
-            l.check_armed()
+            l.is_armed()
         with self.assertRaises(ConnectionError): # try two different commands for good measure
             l.get_status()
 
