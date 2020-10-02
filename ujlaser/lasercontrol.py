@@ -32,8 +32,8 @@ class LaserStatusResponse():
         self.low_power_mode = bool(i & 4096)
         self.high_power_mode = bool(i & 8192)
 
-    def __str__(self):
-        """Returns a string representation of the laser status. Should be an ASCII number as shown in the user manual."""
+    def __int__(self):
+        """Returns an integer representation of the laser status. Should be an ASCII number as shown in the user manual."""
         i = 0
         if self.laser_enabled:
             i += 1
@@ -58,7 +58,25 @@ class LaserStatusResponse():
         if self.high_power_mode:
             i += 8192
 
-        return str(i)
+        return i
+
+    def __str__(self):
+        """Returns a status print out in human-readable format."""
+        s = "Laser is "
+        if self.laser_enabled:
+            s += "enabled\n"
+        else:
+            s += "disabled\n"
+
+        s += "External Interlock is: "
+        if self.external_interlock:
+            s += "DISCONNECTED\n"
+        else:
+            s += "CONNECTED\n"
+
+        s += "Ready to fire: " + str(self.ready_to_fire) + "\n"
+        s += "Ready to enable: " + str(self.ready_to_enable) + "\n"
+
 
 class Laser:
     """This class is where all of our functions that interact with the laser reside."""
