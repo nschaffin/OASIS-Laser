@@ -1,12 +1,13 @@
+import sys
+sys.path.append("..")
 import unittest
 from unittest.mock import Mock
-import FakeSerialLaser as fake_serial
 import serial
 import serial.tools.list_ports
 import time
 import threading
-
-from uj_laser import laser_control
+from ujlaser import laser_control
+import FakeSerialLaser as fake_serial
 
 class TestSerial(unittest.TestCase):
     """

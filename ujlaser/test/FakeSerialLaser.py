@@ -295,6 +295,7 @@ class Serial:
                         self._sendBytes('?8')                       # Command unavailable in current system state
 
                 elif actionCMD[0] == 'FL':                                  # Fire Laser - Allows you to fire and stop firing the laser (0 = stop firing, 1 = fire)
+<<<<<<< HEAD
                     if int(actionCMD[1]) == 1 and self._RTF == '1' and (self._energyMode == 0 or self._energyMode == 2) and self._LE == '1' and self._RTE == '1':
                         if self._firing:
                             self._sendBytes('?8')
@@ -309,6 +310,11 @@ class Serial:
                             self._LA = '0'
                             self._fireLaser = 0
                             self._sendBytes('OK')
+=======
+                    if self._RTF == '1' and (self._energyMode == 0 or self._energyMode == 2) and self._LE == '1' and self._RTE == '1':
+                        self._t3.start()
+                        self._sendBytes('OK')
+>>>>>>> master
                     else:
                         self._sendBytes('?8')                       # Command unavailable in current system state
                         
@@ -558,10 +564,13 @@ class Serial:
         self._thermistorTempMAX = 10000000
         self._userShotCount = 0
 
+<<<<<<< HEAD
         self._emergencyStop = False
         self._arming = False
         self._firing = False
 
+=======
+>>>>>>> master
 
         ### System Status Below ###
         # This goes 15 -> 0 byte order (16 bit decimal value)
@@ -618,7 +627,11 @@ class Serial:
         self._systemShotCount += 1
         self._fireLaser = 0
         self._LA = '0'
+<<<<<<< HEAD
         self._firing = False
+=======
+
+>>>>>>> master
 
 #---Error Types-----------------------------------------------------------------------------------
 

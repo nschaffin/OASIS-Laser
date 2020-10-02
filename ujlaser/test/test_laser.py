@@ -10,7 +10,7 @@ class TestLaserCommands(unittest.TestCase):
         assert l.connected == False
         assert l._ser == None
         with self.assertRaises(ConnectionError):
-            l.check_armed()
+            l.is_armed()
         with self.assertRaises(ConnectionError): # try two different commands for good measure
             l.get_status()
 
@@ -39,7 +39,7 @@ class TestLaserCommands(unittest.TestCase):
         l = Laser()
         with self.assertRaises(ConnectionError):
             l._send_command("HELLO THERE") # This should throw an exception because we have not connected it to a serial object.
-
+        
         l._ser = serial_mock
         l.connected = True
         assert l._send_command("HELLO WORLD") == b"OK\r" # Ensure that we are returning the serial response
@@ -192,6 +192,45 @@ class TestLaserCommands(unittest.TestCase):
         assert minimum == test_range[0]
         assert maximum == test_range[1]
         serial_mock.write.assert_any_call(";LA:RR:MIN?\r".encode("ascii"))
+        serial_mock.write.assert_called_once_with(";LA:DT 0\r".encode("ascii"))
+        assert l.diodeTrigger == 1 # This value should have NOT changed since this command failed.
+
+    def test_get_pulse_period_range(self):
+        """Tests Laser.get_pulse_period_range"""
+        serial_mock = Mock()
+        
+        serial_mock.read_until = Mock()
+        test_range = [0.00002, 0.002]
+        serial_mock.read_until.side_effect = [str(test_range[0]).encode("ascii"), str(test_range[1]).encode("ascii")]
+        serial_mock.write = Mock()
+
+        l = Laser()
+        l._ser = serial_mock
+        l.connected = True
+        
+        minimum, maximum = l.get_pulse_period_range()
+        assert minimum == test_range[0]
+        assert maximum == test_range[1]
+        serial_mock.write.assert_any_call(";LA:PE:MIN?\r".encode("ascii"))
+        serial_mock.write.assert_any_call(";LA:PE:MAX?\r".encode("ascii"))
+        
+    def test_get_repetition_rate_range(self):
+        """Tests Laser.get_pulse_period_range"""
+        serial_mock = Mock()
+        
+        serial_mock.read_until = Mock()
+        test_range = [1.0, 5.0]
+        serial_mock.read_until.side_effect = [str(test_range[0]).encode("ascii"), str(test_range[1]).encode("ascii")]
+        serial_mock.write = Mock()
+
+        l = Laser()
+        l._ser = serial_mock
+        l.connected = True
+        
+        minimum, maximum = l.get_repetition_rate_range()
+        assert minimum == test_range[0]
+        assert maximum == test_range[1]
+        serial_mock.write.assert_any_call(";LA:RR:MIN?\r".encode("ascii"))
         serial_mock.write.assert_any_call(";LA:RR:MAX?\r".encode("ascii"))
 
     def test_pulse_width_command(self):
@@ -255,8 +294,9 @@ class TestLaserCommands(unittest.TestCase):
             l.set_energy_mode(2)
 
         serial_mock.write.assert_called_once_with(";LA:EM 2\r".encode("ascii"))
+        serial_mock.write.assert_called_once_with(";LA:EM 2\r".encode("ascii"))
         assert l.energyMode == 1 # This value should have NOT changed since this command failed.
-
+        
     def test_diode_current_command(self):
         """Tests Laser.set_diode_current, feeds in a mock serial object. Makes sure that the correct data is written and that the properties of the class are changed."""
         serial_mock = Mock()

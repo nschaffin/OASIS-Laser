@@ -1,3 +1,6 @@
 __pycache__/*
 ujlaser/__pycache__/*
 test/__pycache__/*
+.DS_Store/
+*.pyc
+.orig
