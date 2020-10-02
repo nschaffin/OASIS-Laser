@@ -76,7 +76,7 @@ class LaserStatusResponse():
 
         s += "Ready to fire: " + str(self.ready_to_fire) + "\n"
         s += "Ready to enable: " + str(self.ready_to_enable) + "\n"
-
+        return s
 
 class Laser:
     """This class is where all of our functions that interact with the laser reside."""
