@@ -281,7 +281,12 @@ class Laser:
         with self._lock:
             #if port_number not in serial.tools.list_ports.comports():
             #    raise ValueError(f"Error: port {port_number} is not available")
-            self._ser = serial.Serial(port=port_number)
+            
+            if isinstance(port_number,serial.Serial):
+                self._ser = port_number
+            else:
+                self._ser = serial.Serial(port=port_number)
+            
             if baud_rate and isinstance(baud_rate, int):
                 self._ser.baudrate = baud_rate
             else:
@@ -311,6 +316,13 @@ class Laser:
             if self._startup:  # start kicking the laser's WDT
                 #self._kicker_thread_control(0)
                 self._startup = False
+
+    def disconnect(self):
+        if not self.connected:
+            return
+        self._ser.close()
+        self.connected = False
+        self._ser = None
 
     """
     def _kicker_thread_control(self, action):
