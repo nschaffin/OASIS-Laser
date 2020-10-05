@@ -400,7 +400,7 @@ class Laser:
             raise LaserCommandError("Laser not ready to fire!")
         fire_response = self._send_command('FL 1')
         
-        if fire_response != b"OK\r":
+        if fire_response != b"ok\r\n":
             self._send_command('FL 0') # aborts if laser fails to fire
             raise LaserCommandError(Laser.get_error_code_description(fire_response))
         
@@ -573,7 +573,7 @@ class Laser:
         self.emergencyStopActive = True
         if self.fireThread not in self._threads:    # Checking if fireThread is an active thread
             response = self._send_command('FL 0')
-            if response == b"OK\r":
+            if response == b"ok\r\n":
                 return True
             else:
                 raise LaserCommandError(Laser.get_error_code_description(response))
@@ -589,7 +589,7 @@ class Laser:
         if self.is_armed():
             raise LaserCommandError("Laser already armed")
         response = self._send_command('EN 1')
-        if response == b"OK\r":
+        if response == b"ok\r\n":
             return True
         raise LaserCommandError(Laser.get_error_code_description(response))
 
@@ -603,7 +603,7 @@ class Laser:
         """
         response = self._send_command('EN 0')
 
-        if response == b"OK\r":
+        if response == b"ok\r\n":
             return True
         raise LaserCommandError(Laser.get_error_code_description(response))
 
@@ -624,7 +624,7 @@ class Laser:
             raise ValueError("Invalid value for pulse mode! 0, 1, or 2 are accepted values.")
 
         response = self._send_command("PM " + str(mode))
-        if response == b"OK\r":
+        if response == b"ok\r\n":
             self.pulseMode = mode
             return True
         raise LaserCommandError(Laser.get_error_code_description(response))
@@ -646,7 +646,7 @@ class Laser:
         #TODO: Once found, add these restrictions into the function so we don't send over invalid commands.
         #TODO: Also, we need to see what the laser's default pulse period is set to.
         response = self._send_command("PE " + str(period))
-        if response == b"OK\r":
+        if response == b"ok\r\n":
             self.pulsePeriod = float(period)
             return True
         raise LaserCommandError(Laser.get_error_code_description(response))
@@ -688,7 +688,7 @@ class Laser:
             raise ValueError("Invalid value for trigger mode! 0 or 1 are accepted values.")
 
         response = self._send_command("DT " + str(trigger))
-        if response == b"OK\r":
+        if response == b"ok\r\n":
             self.diodeTrigger = trigger
             return True
         raise LaserCommandError(Laser.get_error_code_description(response))
@@ -713,7 +713,7 @@ class Laser:
         width = float(width)
 
         response = self._send_command("DW " + str(width))
-        if response == b"OK\r":
+        if response == b"ok\r\n":
             self.pulseWidth = width
             return True
         raise LaserCommandError(Laser.get_error_code_description(response))
@@ -735,7 +735,7 @@ class Laser:
             raise ValueError("Burst count must be a positive, non-zero integer!")
 
         response = self._send_command("BC " + str(count))
-        if response == b"OK\r":
+        if response == b"ok\r\n":
             self.burstCount = count
             self.burstDuration = self.burstCount / self.repRate
             return True
@@ -758,7 +758,7 @@ class Laser:
             raise ValueError("Laser repetition rate must be a positive integer from 1 to 5!")
 
         response = self._send_command("RR " + str(rate))
-        if response == b"OK\r":
+        if response == b"ok\r\n":
             self.repRate = rate
             self.burstDuration = self.burstCount / self.repRate
             return True
@@ -801,7 +801,7 @@ class Laser:
             raise ValueError("Diode current must be a positive, non-zero number!")
 
         response = self._send_command("DC " + str(current))
-        if response == b"OK\r":
+        if response == b"ok\r\n":
             self.diodeCurrent = current
             self.energyMode = 0 # Whenever diode current is adjusted manually, the energy mode is set to manual.
             return True
@@ -827,7 +827,7 @@ class Laser:
             raise ValueError("Valid values for energy mode are 0, 1 and 2!")
 
         response = self._send_command("EM " + str(mode))
-        if response == b"OK\r":
+        if response == b"ok\r\n":
             self.energyMode = mode
             return True
         raise LaserCommandError(Laser.get_error_code_description(response))
@@ -841,7 +841,7 @@ class Laser:
             If the command sent to the laser was processed properly, this should show as True. Otherwise an error will be raised.
         """
         responce = self._send_command('RS')
-        if responce == b'OK\r':
+        if responce == b'ok\r\n':
             self.editConstants()    # Refreshing all constants back to their default states if response is valid
             return True
         raise LaserCommandError(Laser.get_error_code_description(responce))
@@ -867,21 +867,21 @@ class Laser:
         """
         A function used to understand what the incoming error from our laser represents
         """
-        if code == b'?1':
+        if code == b'?1\r\n':
             return "Command not recognized."
-        elif code == b'?2':
+        elif code == b'?2\r\n':
             return "Missing command keyword."
-        elif code == b'?3':
+        elif code == b'?3\r\n':
             return "Invalid command keyword."
-        elif code == b'?4':
+        elif code == b'?4\r\n':
             return "Missing Parameter"
-        elif code == b'?5':
+        elif code == b'?5\r\n':
             return "Invalid Parameter"
-        elif code == b'?6':
+        elif code == b'?6\r\n':
             return "Query only. Command needs a question mark."
-        elif code == b'?7':
+        elif code == b'?7\r\n':
             return "Invalid query. Command does not have a query function."
-        elif code == b'?8':
+        elif code == b'?8\r\n':
             return "Command unavailable in current system state."
         else:
             return "Error description not found, response code given: " + str(code)
