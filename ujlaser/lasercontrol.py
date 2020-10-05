@@ -76,6 +76,32 @@ class LaserStatusResponse():
 
         s += "Ready to fire: " + str(self.ready_to_fire) + "\n"
         s += "Ready to enable: " + str(self.ready_to_enable) + "\n"
+
+        if s.low_power_mode:
+            s +=  "Laser is in LOW power mode.\n"
+        elif s.high_power_mode:
+            s += "Laser is in HIGH power mode.\n"
+        else:
+            s += "Laser is in MANUAL power mode.\n"
+
+        if s.laser_active:
+            s += "Laser is ACTIVE.\n"
+        else:
+            s += "Laser is not active.\n"
+
+        errors = ""
+        if s.power_failure:
+            errors += "!!!POWER FAILURE!!!\n"
+        if s.resonator_over_temp:
+            errors += "!!!RESONATOR OVER TEMPERATURE!!!\n"
+        if s.electrical_over_temp:
+            errors += "!!!ELECTRICAL OVER TEMPERATURE!!!\n"
+        
+        if len(errors) > 0:
+            s += "!!!---------------------------!!!\n"
+            s += "!!!       ERROR REPORT        !!!\n"
+            s += errors
+            s += "!!!===========================!!!\n"
         return s
 
 class Laser:
