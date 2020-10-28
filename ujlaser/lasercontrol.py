@@ -424,6 +424,8 @@ class Laser:
                 Returns a LaserStatusResponse object created from the SS? command's response that is received.
         """
         response = self._send_command('SS?')
+        if not response: # No response received, status failed.
+            return None
         response = str(response[:-1].decode('ascii'))
 
         if response[0] == "?": # Check to see if we got an error instead. NOTE: This originally had len(response) < 5, but I don't see the purpose of this and it causes errors.
