@@ -1,0 +1,35 @@
+These values are for a 1064nm microJewel laser, serial number 8130-A
+
+Rep rate
+	default: 5.00
+	min:	 0.100
+	max:	 50.000
+
+Pulse Width
+	default: 0.00014000
+	min:	 0.00000100
+	max:	 0.00024000
+
+Pulse Period
+	default: 0.20000000
+	min:	 0.02000000
+	max: 	 10.00000000
+
+Default pulse mode: 0
+
+Diode current: 
+	default: 110.00
+	min:	 1.000
+	max:	 130.000
+	Note: diode current cannot be changed anymore
+
+Resonator Temp
+	min:	 -0.401
+	max:	 50.000
+
+FET Temp:
+	nominal?:34.082
+	max:	 125.000
+
+Burst cout:
+	default: 31
