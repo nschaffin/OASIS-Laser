@@ -29,8 +29,13 @@ float pulse_period = DEFAULT_PULSE_PERIOD;
 float rep_rate = DEFAULT_REP_RATE;
 float resonator_temp = -0.401; // NOTE: This value was taken while the diode was not connected.
 float fet_temp = 34.082;
-float bank_voltage = 0;
+double bank_voltage = 0;
 
+unsigned long fire_duration = 0; // This is in milliseconds
+unsigned long last_fire = 0;
+unsigned long last_disable = 0;
+unsigned long last_command = 0;
+const float discharge_time_constant = 29.41; // This is for modelling the time it takes for the bank voltage to discharge
 
 #define ID_STRING "QC,MicroJewel,08130,1.0.9"
 
@@ -127,6 +132,9 @@ void loop() {
     }
     else {
       ready_to_enable = true;
+      if(laser_enabled) {
+        ready_to_fire = true;
+      }
     }
   }
   else { // External interlock is dicsconnected, so disable everything
@@ -136,10 +144,28 @@ void loop() {
     laser_enabled = false;
   }
 
-  if(bank_voltage > 0) {
-    bank_voltage -= bank_voltage / 3; // This is a VERY rough approximation of the bank voltage discharging
-    if(bank_voltage < 0) {
-      bank_voltage = 0;
+  if(bank_voltage > 0 && !laser_enabled) {
+    unsigned long time_delta = millis() - last_disable;
+    //Serial.print(time_delta);
+    if(time_delta % 100 == 0) { // Only do this expensive math every 100ms
+      bank_voltage = 34 / pow(2.718, 1 * time_delta * 0.000034);
+      if(bank_voltage < 0.002) {
+        bank_voltage = 0;
+      }
+    }
+  }
+
+  if(laser_active) {
+    unsigned long time_delta = millis() - last_fire;
+    unsigned long timeout_delta = millis() - last_command;
+    if(timeout_delta > 3000) { // Laser will timout after 3 seconds during long fire durations
+      laser_active = false;
+      digitalWrite(LED_PIN, LOW);
+    }
+    
+    if(time_delta > fire_duration) {
+      laser_active = false;
+      digitalWrite(LED_PIN, LOW);
     }
   }
 
@@ -154,18 +180,23 @@ void loop() {
       Serial.print("?1\r");
       continue;
      }
-     
+     last_command = millis();
     if (strcmp(cmd, "EN") == 0) {
       Serial.readBytes(k,1);
       if(*k == ' ') {
         int mode = scanNumber();
         if (mode == 0) {
-          laser_enabled = 0;
+          if(laser_enabled) {
+            last_disable = millis();
+          }
+          laser_enabled = false;
+          
           ok();
         }
         else if (mode == 1) {
           if(external_interlock && !power_failure && ready_to_enable) {
-            laser_enabled = 1;
+            laser_enabled = true;
+            bank_voltage = 34.56;
             ok();
           }
           else {
@@ -332,6 +363,38 @@ void loop() {
         }
         diode_trigger = i;          
         ok();
+      }
+      else {
+        Serial.print("?5\r\n");
+      }
+    }
+    else if (strcmp(cmd, "FL") == 0) {
+      Serial.readBytes(k, 1);
+      if(*k == '?') {
+        Serial.print(laser_active ? 1 : 0);
+        Serial.print("\r\n");
+      }
+      else if (*k == ' ') {
+        int i = scanNumber();
+        if (i == -1){
+          Serial.print("?5\r\n");
+          continue;
+        }
+        if (i != 0 && i != 1) {
+          Serial.print("?5\r\n");
+          continue;
+        }
+        if(!ready_to_fire){
+          Serial.print("?8\r\n");
+          continue;
+        }
+        else {
+          laser_active = true;
+          last_fire = millis();
+          digitalWrite(LED_PIN, HIGH);
+          fire_duration = burst_count * (pulse_period*1000);
+          ok();
+        }
       }
       else {
         Serial.print("?5\r\n");
