@@ -756,8 +756,8 @@ class Laser:
         valid : bool
             If the command sent to the laser was processed properly, this should show as True. Otherwise an error will be raised.
         """
-        if not type(rate) == int or rate < 1 or rate > 5:
-            raise ValueError("Laser repetition rate must be a positive integer from 1 to 5!")
+        if not _type(rate) == int or type(rate) == float) or rate < 1 or rate > 5:
+            raise ValueError("Laser repetition rate must be a positive number from 1 to 5!")
 
         response = self._send_command("RR " + str(rate))
         if response == b"ok\r\n":
