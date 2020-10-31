@@ -767,7 +767,7 @@ class Laser:
         raise LaserCommandError(Laser.get_error_code_description(response))
 
     def get_repetition_rate(self):
-        reponse = self._send_command("RR?")
+        response = self._send_command("RR?")
         if not response:
             return
         if response[0] == b"?":
