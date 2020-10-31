@@ -12,7 +12,7 @@ class TestSpoof(unittest.TestCase):
         self.assertEqual(laser.get_repetition_rate(), 5.0)
 
     def test_set_rep_rate(self):
-        global laser, serial_conn
+        global laser
         laser.set_rep_rate(1.2)
         self.assertEqual(laser.get_repetition_rate(), 1.2)
         laser.set_rep_rate(5.0)
@@ -24,15 +24,15 @@ class TestSpoof(unittest.TestCase):
         self.assertEqual(laser.get_repetition_rate(), 5.0)
 
     def test_get_rep_rate_range(self):
-        global laser, serial_conn
-        pass
+        global laser
+        self.assertEqual(laser.get_repetition_rate_range(), (0.100, 50.000))
 
     def test_default_burst_count(self):
-        global laser, serial_conn
+        global laser
         self.assertEqual(laser.get_burst_count(), 31)
 
     def test_set_burst_count(self):
-        global laser, serial_conn
+        global laser
         laser.set_burst_count(2)
         self.assertEqual(laser.get_burst_count(), 2)
         self.assertEqual(laser._send_command("BC -5"), b"?5\r\n")
@@ -127,6 +127,37 @@ class TestSpoof(unittest.TestCase):
         self.assertEqual(laser._send_command("PM 8"), b"?5\r\n")
         self.assertEqual(laser._send_command("PM 0.8"), b"?5\r\n")
         self.assertEqual(laser.get_pulse_mode(), 0)
+
+    def test_default_pulse_period(self):
+        global laser
+        self.assertEqual(laser.get_pulse_period(), 0.20000000)
+
+    def test_pulse_period_range(self):
+        global laser
+        self.assertEqual(laser.get_pulse_period_range(), (0.02, 10.0))
+
+    def test_pulse_period(self):
+        global laser
+        laser.set_pulse_period(0.25) # Using a nice round floating point #
+        self.assertEqual(laser.get_pulse_period(), 0.25)
+        laser.set_pulse_period(0.2)
+        self.assertEqual(laser.get_pulse_period(), 0.20)
+        self.assertEqual(laser._send_command("PE"), b"?5\r\n")
+        self.assertEqual(laser._send_command("PE -1"), b"?5\r\n")
+        self.assertEqual(laser._send_command("PE 11.0"), b"?5\r\n")
+        self.assertEqual(laser._send_command("PE 0.01"), b"?5\r\n")
+        self.assertEqual(laser.get_pulse_period(), 0.2)
+
+    def test_resonator_temp(self):
+        global laser
+        t = laser.get_resonator_temp()
+        print("Resonator temperature: " + str(t))
+        assert t > -1
+        assert t < 51
+
+    def test_resonator_temp_range(self):
+        global laser
+        pass # TODO: Implement this, it's not that important of a function, but still needed for 100% emulation
 
 if __name__ == "__main__":
     serial_port = "COM2"

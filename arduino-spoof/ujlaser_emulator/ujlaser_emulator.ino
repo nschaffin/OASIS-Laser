@@ -11,17 +11,26 @@ bool ready_to_fire = false;
 bool low_power_mode = false;
 bool high_power_mode = false;
 
+#define DEFAULT_BURST_COUNT 31
+#define DEFAULT_PULSE_MODE 0
+#define DEFAULT_DIODE_TRIGGER 0
+#define DEFAULT_PULSE_WIDTH 0.00014000
+#define DEFAULT_PULSE_PERIOD 0.20000000
+#define DEFAULT_REP_RATE 5.0;
+
 unsigned int shot_count = 0;
-unsigned int burst_count = 31;
-unsigned short pulse_mode = 0;
-unsigned short diode_trigger = 0;
+unsigned int burst_count = DEFAULT_BURST_COUNT;
+unsigned short pulse_mode = DEFAULT_PULSE_MODE;
+unsigned short diode_trigger = DEFAULT_DIODE_TRIGGER;
 
 const float diode_current = 110.00; // Latest models of QC ujlasers have this fixed
-float pulse_width = 0.00014000;
-float pulse_period = 0.20000000;
-float rep_rate = 5.00;
+float pulse_width = DEFAULT_PULSE_WIDTH;
+float pulse_period = DEFAULT_PULSE_PERIOD;
+float rep_rate = DEFAULT_REP_RATE;
 float resonator_temp = -0.401; // NOTE: This value was taken while the diode was not connected.
 float fet_temp = 34.082;
+float bank_voltage = 0;
+
 
 #define ID_STRING "QC,MicroJewel,08130,1.0.9"
 
@@ -127,6 +136,13 @@ void loop() {
     laser_enabled = false;
   }
 
+  if(bank_voltage > 0) {
+    bank_voltage -= bank_voltage / 3; // This is a VERY rough approximation of the bank voltage discharging
+    if(bank_voltage < 0) {
+      bank_voltage = 0;
+    }
+  }
+
   c = 0;
   while(Serial.available() > 0) {
      c = Serial.read();
@@ -201,6 +217,55 @@ void loop() {
         Serial.print("?6\r\n");
       }
     }
+    else if (strcmp(cmd, "PE") == 0) {
+      Serial.readBytes(k, 1);
+      if(*k == '?') {
+        Serial.print(pulse_period, 3);
+        Serial.print("\r\n");
+      }
+      else if (*k == ' ') {
+        float f = -1000;
+        f = Serial.parseFloat();
+        if (f == -1000) {
+          Serial.print("?4\r\n");
+          continue;
+        }
+        if(f < MIN_PE || f > MAX_PE) {
+          Serial.print("?5\r\n");
+          continue;
+        }
+        pulse_period = f;
+        rep_rate = 1.0/f;
+        ok();
+      }
+      else if (*k == ':') {
+        char keyword[4];
+        memset(keyword, 0, 4);
+        if(Serial.readBytesUntil('?', keyword, 3) != 3){
+          Serial.print("?5\r\n");
+          Serial.flush();
+          delay(200); // Idk why this must be here, but it makes it pass the test bench....... And yes, it must be 200ms, i tested it... idc
+          continue;
+        }
+        if(strcmp(keyword, "MIN")==0) {
+          Serial.print(MIN_PE);
+          Serial.print("\r\n");
+          continue;
+        }
+        else if(strcmp(keyword, "MAX")==0) {
+          Serial.print(MAX_PE);
+          Serial.print("\r\n");
+          continue;
+        }
+        else {
+          Serial.print("?3\r\n");
+          continue;
+        }
+      }
+      else {
+        Serial.print("?5\r\n");
+      }
+    }
     else if (strcmp(cmd, "RR") == 0) {
       Serial.readBytes(k, 1);
       if(*k == '?') {
@@ -219,7 +284,31 @@ void loop() {
           continue;
         }
         rep_rate = f;
+        pulse_period = 1/f;
         ok();
+      }
+      else if (*k == ':') {
+        char keyword[4];
+        memset(keyword, 0, 4);
+        if(Serial.readBytesUntil('?', keyword, 3) != 3){
+          Serial.print("?5\r\n");
+          Serial.flush();
+          continue;
+        }
+        if(strcmp(keyword, "MIN")==0) {
+          Serial.print(MIN_RR);
+          Serial.print("\r\n");
+          continue;
+        }
+        else if(strcmp(keyword, "MAX")==0) {
+          Serial.print(MAX_RR);
+          Serial.print("\r\n");
+          continue;
+        }
+        else {
+          Serial.print("?3\r\n");
+          continue;
+        }
       }
       else {
         Serial.print("?5\r\n");
@@ -381,7 +470,27 @@ void loop() {
     else if (strcmp(cmd, "BV") == 0) {
       Serial.readBytes(k,1);
       if (*k == '?') {
-        Serial.print(0.000, 5);
+        Serial.print(bank_voltage, 3);
+        Serial.print("\r\n");
+      }
+      else {
+        Serial.print("?6\r\n");
+      }
+    }
+    else if (strcmp(cmd, "RS") == 0) {
+      Serial.end();
+      pulse_mode = DEFAULT_PULSE_MODE;
+      diode_trigger = DEFAULT_DIODE_TRIGGER;
+      pulse_width = DEFAULT_PULSE_WIDTH;
+      pulse_period = DEFAULT_PULSE_PERIOD;
+      rep_rate = DEFAULT_REP_RATE;
+      burst_count = DEFAULT_BURST_COUNT;
+      Serial.begin(115200);
+    }
+    else if (strcmp(cmd, "TR") == 0) {
+      Serial.readBytes(k,1);
+      if (*k == '?') {
+        Serial.print(resonator_temp, 3);
         Serial.print("\r\n");
       }
       else {

@@ -471,7 +471,7 @@ class Laser:
             Returns the float value of the resonator temperature in Celsius.
         """
         response = self._send_command('TR?')
-        if response[0] == b"?":
+        if not response or response[0] == b"?":
             raise LaserCommandError(Laser.get_error_code_description(response))
         return float(response.decode('ascii'))
 
@@ -658,6 +658,12 @@ class Laser:
             self.pulsePeriod = float(period)
             return True
         raise LaserCommandError(Laser.get_error_code_description(response))
+
+    def get_pulse_period(self):
+        response = self._send_command("PE?")
+        if not response or response[0] == b'?':
+            raise LaserCommandError(Laser.get_error_code_description(response))
+        return float(response)
         
     def get_pulse_period_range(self):
         """Returns the min and max periods for firing.
@@ -809,12 +815,12 @@ class Laser:
             Item at index 0 is the minimum repitition rate, and item at index 1 is the maximum repitition rate.
         """
         min_response = self._send_command("RR:MIN?")
-        if min_response[0] == b"?":
+        if not min_response or min_response[0] == b"?":
             raise LaserCommandError(Laser.get_error_code_description(min_response))
         minimum = float(min_response)
 
         max_response = self._send_command("RR:MAX?")
-        if max_response[0] == b"?":
+        if not max_response or max_response[0] == b"?":
             raise LaserCommandError(Laser.get_error_code_description(max_response))
         maximum = float(max_response)
             
