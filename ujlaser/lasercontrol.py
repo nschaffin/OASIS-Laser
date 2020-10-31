@@ -773,7 +773,7 @@ class Laser:
         if response[0] == b"?":
             raise LaserCommandError(Laser.get_error_code_description(response))
         
-        return int(response)
+        return float(response)
 
     def get_repetition_rate_range(self):
         """Gets the minimum and maximum repitition rate for firing.
