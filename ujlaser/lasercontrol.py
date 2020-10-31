@@ -428,7 +428,7 @@ class Laser:
             return None
         response = str(response[:-1].decode('ascii'))
 
-        if response[0] == "?": # Check to see if we got an error instead. NOTE: This originally had len(response) < 5, but I don't see the purpose of this and it causes errors.
+        if response[0] == b"?": # Check to see if we got an error instead. NOTE: This originally had len(response) < 5, but I don't see the purpose of this and it causes errors.
             raise LaserCommandError(Laser.get_error_code_description(response))
         else:
             return LaserStatusResponse(response)
@@ -609,6 +609,12 @@ class Laser:
             return True
         raise LaserCommandError(Laser.get_error_code_description(response))
 
+    def get_pulse_mode(self):
+        response = self._send_command("PM?")
+        if not response or response[0] == b"?":
+            raise LaserCommandError(Laser.get_error_code_description(response))
+        return int(response)
+
     def set_pulse_mode(self, mode):
         """Sets the laser pulse mode. 0 = continuous, 1 = single shot, 2 = burst. Returns True on nominal response.
         
@@ -672,6 +678,18 @@ class Laser:
         maximum = float(max_response)
             
         return (minimum, maximum)
+
+    def get_pulse_width(self):
+        response = self._send_command("DW?")
+        if not response or response[0] == b"?":
+            raise LaserCommandError(Laser.get_error_code_description(response))
+        return float(response)
+
+    def get_diode_trigger(self):
+        response = self._send_command("DT?")
+        if not response or response[0] == b"?":
+            raise LaserCommandError(Laser.get_error_code_description(response))
+        return int(response)
 
     def set_diode_trigger(self, trigger):
         """Sets the diode trigger mode. 0 = Software/internal. 1 = Hardware/external trigger. Returns True on nominal response.
@@ -743,6 +761,13 @@ class Laser:
             return True
         raise LaserCommandError(Laser.get_error_code_description(response))
 
+    def get_burst_count(self):
+        """Retreives the burst count of the laser."""
+        response = self._send_command("BC?")
+        if response[0] == b"?":
+            raise LaserCommandError(Laser.get_error_code_description(response))
+        return int(response)
+
     def set_rep_rate(self, rate):
         """Sets the repetition rate of the laser. Rate must be a positive integer from 1 to 5 (# of Hz allowed). Returns True on nominal response, False otherwise.
         
@@ -756,7 +781,7 @@ class Laser:
         valid : bool
             If the command sent to the laser was processed properly, this should show as True. Otherwise an error will be raised.
         """
-        if not _type(rate) == int or type(rate) == float) or rate < 1 or rate > 5:
+        if not (type(rate) == int or type(rate) == float) or rate < 1 or rate > 5:
             raise ValueError("Laser repetition rate must be a positive number from 1 to 5!")
 
         response = self._send_command("RR " + str(rate))
