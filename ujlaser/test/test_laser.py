@@ -94,22 +94,23 @@ class TestLaserCommands(unittest.TestCase):
 
     def test_get_status(self):
         """Tests to make sure that the get_status() function operates properly."""
+
         serial_mock = Mock()
         serial_mock.read_until = Mock(return_value=b"?1\r")
         serial_mock.write = Mock()
 
         l = Laser()
-        l._ser = serial_mock
-        l.connected = True
+        l._ser = serial_mock # Inject our mock function and play it as if it's a serial.Serial object
+        l.connected = True # Also needed for injection
 
         with self.assertRaises(LaserCommandError):
             l.get_status()
 
         serial_mock.write.assert_called_once_with(";LA:SS?\r".encode("ascii"))
-
         # Reset our read and write mocks
         serial_mock.read_until = Mock(return_value=b"3075\r")
         serial_mock.write = Mock()
+        l._ser = serial_mock
 
         status = l.get_status()
 
@@ -265,78 +266,6 @@ class TestLaserCommands(unittest.TestCase):
 
         serial_mock.write.assert_called_once_with(";LA:DW 0.2\r".encode("ascii"))
         assert l.pulseWidth == 0.1 # This value should have NOT changed since this command failed.
-
-    def test_energy_mode_command(self):
-        """Tests Laser.set_energy_mode, feeds in a mock serial object. Makes sure that the correct data is written and that the properties of the class are changed."""
-        serial_mock = Mock()
-
-        serial_mock.read_until = Mock(return_value=b"ok\r\n")
-        serial_mock.write = Mock()
-
-        l = Laser()
-        l._ser = serial_mock
-        l.connected = True
-
-        with self.assertRaises(ValueError):
-            l.set_energy_mode(4) # Valid values are 0 to 2
-
-        with self.assertRaises(ValueError):
-            l.set_energy_mode("this is not an integer")
-
-        assert l.set_energy_mode(1)
-        serial_mock.write.assert_called_once_with(";LA:EM 1\r".encode("ascii"))
-        assert l.energyMode == 1
-
-        serial_mock.read_until = Mock(return_value=b"?1\r\n") # Make sure we return False is the laser returns an error
-        serial_mock.write = Mock()
-
-        with self.assertRaises(LaserCommandError):
-            l.set_energy_mode(2)
-
-        serial_mock.write.assert_called_once_with(";LA:EM 2\r".encode("ascii"))
-        serial_mock.write.assert_called_once_with(";LA:EM 2\r".encode("ascii"))
-        assert l.energyMode == 1 # This value should have NOT changed since this command failed.
-        
-    def test_diode_current_command(self):
-        """Tests Laser.set_diode_current, feeds in a mock serial object. Makes sure that the correct data is written and that the properties of the class are changed."""
-        serial_mock = Mock()
-
-        serial_mock.read_until = Mock(return_value=b"ok\r\n")
-        serial_mock.write = Mock()
-
-        l = Laser()
-        l._ser = serial_mock
-        l.connected = True
-
-        with self.assertRaises(ValueError):
-            l.set_diode_current(0)
-
-        with self.assertRaises(ValueError):
-            l.set_diode_current(-5)
-
-        with self.assertRaises(ValueError):
-            l.set_diode_current("this is not an integer")
-
-        # Reset the energy mode to test that it gets switched to manual (0)
-        l.energyMode = 2
-
-        assert l.set_diode_current(100)
-        serial_mock.write.assert_called_once_with(";LA:DC 100\r".encode("ascii"))
-        assert l.diodeCurrent == 100
-        assert l.energyMode == 0
-
-        serial_mock.read_until = Mock(return_value=b"?1\r\n") # Emulate the laser returning a failure code.
-        serial_mock.write = Mock()
-
-        # Reset the energy mode to test that it DOES NOT gets switched to manual (0)
-        l.energyMode = 2
-
-        with self.assertRaises(LaserCommandError):
-            l.set_diode_current(50)
-        serial_mock.write.assert_called_once_with(";LA:DC 50\r".encode("ascii"))
-        assert l.diodeCurrent == 100 # This value should have NOT changed since this command failed.
-        assert l.energyMode == 2 # This also should not have changed because the command failed.
-
 
 if __name__ == "__main__":
     unittest.main()
