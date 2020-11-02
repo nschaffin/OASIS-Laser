@@ -116,30 +116,23 @@ class Laser:
     SINGLE_SHOT = 1
     BURST = 2
 
-    def __init__(self, pulseMode = 0, pulsePeriod = 0, repRate = 1, burstCount = 10, diodeCurrent = .1, energyMode = 0, pulseWidth = 10, diodeTrigger = 0):
+    def __init__(self, pulseMode = 0, pulsePeriod = 0, repRate = 1, burstCount = 10, pulseWidth = 10, diodeTrigger = 0):
         self._ser = None
         self.pulseMode = pulseMode # NOTE: Pulse mode 0 = continuous is actually implemented as 2 = burst mode in this code.
         self.pulsePeriod = pulsePeriod
         self.repRate = repRate          # NOTE: The default repitition rate for the laser is 1 Hz not 10 Hz (10 is out of bounds aswell)
         self.burstCount = burstCount    # NOTE: The default burst count for the laser is 10 not 10000
-        self.diodeCurrent = diodeCurrent
-        self.energyMode = energyMode
         self.pulseWidth = pulseWidth
         self.diodeTrigger = diodeTrigger
-        self.burstDuration = burstCount/repRate
 
         self.emergencyStopActive = False
-        self._kicker_status = None
-        self._kicker_active = False
-        self._kicker_request_status = False
-        self._startup = True
-        self._threads = []
         self._lock = thread.Lock() # this lock will be acquired every time the serial port is accessed.
         self._device_address = "LA"
         self.connected = False
-        self._fireThread = None
-        self.fire_threads = []
-        
+        self._fire_timer = 0
+        self._kicker_interval = 1 # Run the kicker every second
+        self._kicker = RepeatedTimer(self._kicker_interval, self._kicker_callback, False, self)
+
     def connect(self, port_number, baud_rate=115200, timeout=1, parity=None, refresh=False):
         """
         Sets up connection between flight computer and laser
@@ -191,12 +184,8 @@ class Laser:
             
             self.connected = True            
             
-            if refresh == True:
-                self.laser_refresh()
-
-            if self._startup:  # start kicking the laser's WDT
-                #self._kicker_thread_control(0)
-                self._startup = False
+        if refresh:
+            self.refresh_parameters()
 
     def disconnect(self):
         if not self.connected:
@@ -205,49 +194,16 @@ class Laser:
         self.connected = False
         self._ser = None
         
-    def laser_refresh(self):
-        """This function is called by the connect function whenever the user declares he wants the class variables to be reset upon connecting"""
-        self.editConstants()
-        self._startup = True
-        self._threads = []
-        self._lock = thread.Lock() # this lock will be acquired every time the serial port is accessed.
-        self._device_address = "LA"
-        self.connected = False
-
-    def editConstants(self, pulseMode = 0, pulsePeriod = 0, repRate = 1, burstCount = 10, diodeCurrent = .1, energyMode = 0, pulseWidth = 10,  diodeTrigger = 0):
+    def refresh_parameters(self):
         """
-        Update the laser settings
-
-        Parameters
-        ----------
-        pulseMode : int
-            0 = continuous (actually implemented as burst mode), 1 = single shot, 2 = burst mode in this code.
-        pulsePeriod : float
-            The time period for a continuous laser pulse
-        repRate : float
-            0 = Rate of laser firing in Hz (1 to 30)
-        burstCount : int
-            number of shots to fire (if pulse mode is 0 or 2)
-        diodeCurrent : float
-            Current to diode (see laser ATP spec sheet which comes with the laser for  optimal settings)
-        energyMode : int
-            0 = manual mode, 1 = low power, 2 = high power
-        pulseWidth : float
-            sets the diode pulse width (see laser ATP spec sheet which comes with laser for optimal settigns)
-        diodeTrigger : int
-            0 = internal, 1 = external
+        Query the laser about it's current settings.
         """
-        self.pulseMode = pulseMode
-        self.pulsePeriod = pulsePeriod
-        self.repRate = repRate
-        self.burstCount = burstCount
-        self.diodeCurrent = diodeCurrent
-        self.energyMode = energyMode
-        self.pulseWidth = pulseWidth
-        self.diodeTrigger = diodeTrigger
-        self.burstDuration = burstCount/repRate
-        self._kicker_status = None
-        self.update_settings()
+        self.pulseMode = self.get_pulse_mode()
+        self.pulsePeriod = self.get_pulse_period()
+        self.repRate = self.get_repetition_rate()
+        self.burstCount = self.get_burst_count()
+        self.pulseWidth = self.get_pulse_width()
+        self.diodeTrigger = self.get_diode_trigger()
 
     def _send_command(self, cmd):
         """
@@ -295,155 +251,54 @@ class Laser:
             response = str(response[:-1].decode('ascii'))
             return LaserStatusResponse(response)
 
-    """
-    def _kicker_thread_control(self, action):
-        
-        A control center for the kicker function. This allows for the kicker thread to be started, killed, and restarted.
-
-        Parameters
-        ----------
-        action : int
-            0 = Start new kicker thread, 1 = kill active kicker thread
-
-        time : float
-            Amount of time needed for kicker
-
-        Returns
-        -------
-        response : bool
-            Returns True for valid action command. Raises an error otherwise.
-        
-        if action == 0 and self._kicker_active == False:
-            self._kicker_active = True
-            self.kicker_thread = thread.Thread(target=self.kicker_thread)
-            self.kicker_thread.start()
-            self._threads.append(self.kicker_thread)
-            return True
-
-        elif action == 1 and self._kicker_active == True:
-            self._kicker_active = False
-            self.kicker_thread.join()
-            if self.kicker_thread in self._threads:
-                self._threads.pop(self._threads.index(self.kicker_thread))
-            return True
-        
-        elif action != 0 or action != 1:
-            raise KickerError("Invalid parameter")
-
-        else:
-            raise KickerError("Kicker state does not comply with action command")
-    """
-
-    """
-    def _kicker(self):  # queries for status every second in order to kick the laser's communications safety timeout on shots >= 3s
-        #Queries for status every second in order to kick the laser's communications safety timeout on shots >= 3s
-        while True:
-            if self._kicker_active == False:                             # If kicker thread needs to be terminated, this will exit the thread
-                break
-            if self._kicker_request_status:                         # If a kicker status is requested, save them to a variable to be used in main code
-                self._kicker_status = self._send_command('SS?')
-            else:
-                self._kicker_status = None                                  # Don't keep old kicker values
-            time.sleep(.5)
-    """
-
-    def fire_thread(self):
-        """This thread handles time keeping for how long the laser takes to fire"""
-        # This class has been optimized to handle instances where emergency stop command has been sent during firing
-        if self.pulseMode == self.CONTINUOUS:
-            timer_start = time.time()
-            while (time.time() - timer_start) <= (self.pulsePeriod):
-                status = self.get_status()      #TODO: Does Python have automatic garbage collection for all these objects?
-                if status.laser_active:
-                    continue
-                elif not status.laser_enabled:
-                    raise LaserFireError("Laser has become disabled")
-                elif not status.ready_to_fire:
-                    raise LaserFireError("Laser is not armed")
-                elif not status.low_power_mode or not status.high_power_mode:
-                    raise LaserFireError("Laser is not in a proper power state")
-                else:
-                    raise LaserFireError("Laser in unexpected state")
-                time.sleep(.1)                  # Check every .1 seconds (Feel free to tune this as you see fit)
-        
-        elif self.pulseMode == self.SINGLE_SHOT:
-            timer_start = time.time()
-            while (time.time() - timer_start) <= (1 / self.repRate):
-                status = self.get_status()      #TODO: Does Python have automatic garbage collection for all these objects?
-                if status.laser_active:
-                    continue
-                elif not status.laser_enabled:
-                    raise LaserFireError("Laser has become disabled")
-                elif not status.ready_to_fire:
-                    raise LaserFireError("Laser is not armed")
-                elif not status.low_power_mode or not status.high_power_mode:
-                    raise LaserFireError("Laser is not in a proper power state")
-                else:
-                    raise LaserFireError("Laser in unexpected state")
-                #time.sleep(.01)
-                # No time.sleep since this will be an under 1 second operation
-
-        elif self.pulseMode == self.BURST:
-            timer_start = time.time()
-            while (time.time() - timer_start) <= (self.burstDuration):
-                status = self.get_status()      #TODO: Does Python have automatic garbage collection for all these objects?
-                if status.laser_active:
-                    continue
-                elif not status.laser_enabled:
-                    raise LaserFireError("Laser has become disabled")
-                elif not status.ready_to_fire:
-                    raise LaserFireError("Laser is not armed")
-                elif not status.low_power_mode or not status.high_power_mode:
-                    raise LaserFireError("Laser is not in a proper power state")
-                else:
-                    raise LaserFireError("Laser in unexpected state")
-                time.sleep(.1)                  # Check every .1 seconds (Feel free to tune this as you see fit)
-
-        if not self.emergencyStopActive:
-            self._send_command('FL 0')
-        
-        if self.fireThread in self._threads:
-            self._threads.pop(self._threads.index(self.fireThread))
-
-
-    def fire_laser(self):
+    def fire(self):
         """
             Sends commands to laser to have it fire
         """
         status = self.get_status()
         
-        if self.pulse_mode == 0: # continuous
-            fire_duration = 1 / self.repetition_rate
-        elif self.pulse_mode == 1:
-            fire_duration = 1 / self.repstition_rate
-        elif self.pulse_mode == 2:
-            fire_duration = self.burst_count / self.repetition_rate
+        if self.pulseMode == 0: # continuous
+            fire_duration = 1 / self.repRate
+        elif self.pulseMode == 1:
+            fire_duration = 1 / self.repRate
+        elif self.pulseMode == 2:
+            fire_duration = self.burstCount / self.repRate
         else:
             raise LaserCommandError("Invalid pulse mode set for laser!")
 
-        if fire_duration > 2.5: # Close enough to the timeout window
-            print("Kicker")
+        self.fire_duration = fire_duration
 
         if not status.laser_enabled:
             raise LaserCommandError("Laser not armed!") 
         if not status.ready_to_fire:
             raise LaserCommandError("Laser not ready to fire!")
-        fire_response = self._send_command('FL 1')
         
+        if fire_duration >= 3: # Start the kicker thread
+            print("Starting kicker...")
+            self._kicker.start()
+
+        print("Laser firing...") 
+        fire_response = self._send_command('FL 1')
         if fire_response != b"ok\r\n":
             self._send_command('FL 0') # aborts if laser fails to fire
             raise LaserCommandError(Laser.get_error_code_description(fire_response))
-        
-        status = self.get_status()
-        """
-        if not status.laser_active:     # Checking to see if laser has reported to be in an active state after requesting to fire (Updated to not worry about power modes)
-            self._send_command('FL 0')  # Aborts if laser fails to fire
-            raise LaserCommandError('Laser Failed to Fire')
+ 
+    def _kicker_callback(self, laser):
+        try:
+            status = laser.get_status()
+        except LaserCommandError as e:
+            laser._send_command("FL 0")
+            laser._kicker.stop()
+
+        if not status:
+            laser._send_command("FL 0") # We got an error while asking for the status, best idea to stop firing
+            laser._kicker.stop()
+ 
+        if not status.laser_active and laser._fire_timer > laser.fire_duration:
+            laser._kicker.stop()
+            laser._fire_timer = 0
         else:
-            self.fireThread = thread.Thread(target=self.fire_thread)
-            self.fireThread.start() # Fire thread starts a timer based off of the pulse mode. It'll go through the timer then set Fire Laser to 0. The thread is used so the user can call other commands such as emergency stop.
-            self._threads.append(self.fireThread)
-        """
+            laser._fire_timer += laser._kicker_interval
 
     def emergency_stop(self):
         """Immediately sends command to laser to stop firing
